@@ -65,7 +65,7 @@ jobs:
       - name: Sign with UberApkSigner
         if: steps.check_version.outputs.update_needed == 'true'
         run: |
-          # Sign in-place using --overwrite to avoid argument conflicts
+          # Use --overwrite to avoid argument conflicts, then rename manually
           java -jar ubersigner.jar \
             -a patched_unsigned.apk \
             --ks my_keystore.jks \
@@ -73,8 +73,8 @@ jobs:
             --ksKeyPass ${{ secrets.KEY_PASSWORD }} \
             --ksPass ${{ secrets.KEYSTORE_PASSWORD }} \
             --overwrite
-          
-          # Prepare release folder and rename file
+
+          # Create release directory and move the file
           mkdir -p release
           mv patched_unsigned-aligned-signed.apk release/bit-patched-${{ steps.check_version.outputs.new_version }}.apk
 
@@ -83,16 +83,18 @@ jobs:
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          
+          # Ensure we are on main and up to date to prevent push errors
+          git checkout main || git checkout -b main
+          git pull origin main --rebase
+          
           git add version.txt
           git commit -m "Update patched version to ${{ steps.check_version.outputs.new_version }}" || echo "No changes to commit"
           
-          # Pull latest changes to avoid conflicts
-          git pull --rebase
-          
-          # Tag the release
+          # Tag the version for the release
           git tag v${{ steps.check_version.outputs.new_version }}
           
-          # Push commit and tags
+          # Push changes and tags
           git push origin main --tags
 
       - name: Create GitHub Release
@@ -105,10 +107,3 @@ jobs:
           body: "Automated patch for version ${{ steps.check_version.outputs.new_version }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload Artifact (Backup)
-        if: steps.check_version.outputs.update_needed == 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: Patched-Bit-${{ steps.check_version.outputs.new_version }}
-          path: release/*.apk
