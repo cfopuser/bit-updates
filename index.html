@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bit App Patcher - Download Latest</title>
+    
+    <!-- Google Fonts: Rubik for clean Hebrew/English -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS (CDN for simplicity) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Rubik', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            light: '#00F0D8', // Bright teal from logo
+                            DEFAULT: '#00D1BC', 
+                            dark: '#008C7E',
+                            bg: '#EAFDFB'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        /* Smooth transitions for RTL/LTR flipping */
+        body { transition: all 0.3s ease; }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 10px 30px -5px rgba(0, 209, 188, 0.15);
+        }
+        .animate-fade-in { animation: fadeIn 0.5s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="bg-brand-bg text-slate-800 min-h-screen flex flex-col font-sans">
+
+    <!-- Navigation -->
+    <nav class="w-full py-6 px-4 sm:px-8 flex justify-between items-center max-w-4xl mx-auto">
+        <div class="flex items-center gap-3">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/2/23/Bit_app_logo.svg" alt="Bit Logo" class="h-10 w-10 shadow-sm rounded-lg">
+            <span class="font-bold text-2xl tracking-tight text-slate-700">bit<span class="text-brand-dark font-light">patched</span></span>
+        </div>
+        <button id="langToggle" class="bg-white px-4 py-2 rounded-full shadow-sm text-sm font-semibold text-brand-dark hover:bg-brand-light/20 transition flex items-center gap-2">
+            <i class="fa-solid fa-globe"></i>
+            <span id="langLabel">עברית</span>
+        </button>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-grow flex flex-col items-center justify-center px-4 py-8 w-full max-w-2xl mx-auto">
+        
+        <!-- Hero Card -->
+        <div class="glass-panel rounded-3xl p-8 w-full text-center relative overflow-hidden animate-fade-in">
+            <!-- Loading State -->
+            <div id="loader" class="absolute inset-0 bg-white z-20 flex flex-col items-center justify-center">
+                <div class="animate-spin rounded-full h-12 w-12 border-b-4 border-brand"></div>
+                <p class="mt-4 text-brand-dark animate-pulse">Checking GitHub...</p>
+            </div>
+
+            <!-- Header Text -->
+            <div class="mb-8">
+                <span class="inline-block bg-brand-light/30 text-brand-dark text-xs font-bold px-3 py-1 rounded-full mb-3 uppercase tracking-wider" data-key="badge">Unofficial Patch</span>
+                <h1 class="text-4xl sm:text-5xl font-bold mb-3 text-slate-800" data-key="title">Download bit</h1>
+                <p class="text-slate-500 text-lg" data-key="subtitle">Patched version for compatibility.</p>
+            </div>
+
+            <!-- Main Download Action -->
+            <div id="latestContainer" class="mb-10">
+                <!-- Injected via JS -->
+            </div>
+
+            <!-- History Section -->
+            <div class="border-t border-slate-100 pt-6">
+                <button id="historyToggle" class="flex items-center justify-center gap-2 text-slate-400 hover:text-brand-dark transition mx-auto text-sm font-medium">
+                    <span data-key="olderVersions">Older Versions</span>
+                    <i class="fa-solid fa-chevron-down transition-transform duration-300" id="historyIcon"></i>
+                </button>
+                
+                <div id="historyList" class="hidden mt-4 space-y-2 text-left rtl:text-right max-h-60 overflow-y-auto custom-scrollbar">
+                    <!-- Injected via JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Disclaimer -->
+        <p class="mt-8 text-xs text-slate-400 text-center max-w-md mx-auto leading-relaxed" data-key="disclaimer">
+            This project is not affiliated with the official Bit application or Bank Hapoalim. 
+            Use at your own risk.
+        </p>
+        
+        <a href="https://github.com/cfopuser/bit-updates" target="_blank" class="mt-4 text-slate-400 hover:text-brand-dark transition">
+            <i class="fa-brands fa-github text-xl"></i>
+        </a>
+
+    </main>
+
+    <script>
+        // --- Configuration ---
+        const REPO = "cfopuser/bit-updates";
+        const API_URL = `https://api.github.com/repos/${REPO}/releases`;
+
+        // --- Translations ---
+        const i18n = {
+            en: {
+                badge: "Unofficial Patch",
+                title: "Download bit",
+                subtitle: "Patched to work on all devices.",
+                downloadBtn: "Download APK",
+                released: "Released",
+                olderVersions: "Older Versions",
+                noAssets: "No APK found",
+                loading: "Loading releases...",
+                disclaimer: "This project is not affiliated with the official Bit application or Bank Hapoalim. Use at your own risk.",
+                langLabel: "עברית"
+            },
+            he: {
+                badge: "תיקון לא רשמי",
+                title: "הורדת ביט",
+                subtitle: "גרסה מתוקנת (Patched) לכל המכשירים.",
+                downloadBtn: "הורד APK",
+                released: "שוחרר ב",
+                olderVersions: "גרסאות קודמות",
+                noAssets: "לא נמצא קובץ",
+                loading: "טוען גרסאות...",
+                disclaimer: "פרויקט זה אינו קשור לאפליקציית ביט הרשמית או לבנק הפועלים. השימוש באחריות המשתמש בלבד.",
+                langLabel: "English"
+            }
+        };
+
+        let currentLang = 'en'; // default
+
+        // --- DOM Elements ---
+        const loader = document.getElementById('loader');
+        const latestContainer = document.getElementById('latestContainer');
+        const historyList = document.getElementById('historyList');
+        const historyToggle = document.getElementById('historyToggle');
+        const historyIcon = document.getElementById('historyIcon');
+        const langToggle = document.getElementById('langToggle');
+        const langLabel = document.getElementById('langLabel');
+
+        // --- Functions ---
+
+        function formatDate(dateString) {
+            const options = { year: 'numeric', month: 'short', day: 'numeric' };
+            return new Date(dateString).toLocaleDateString(currentLang === 'he' ? 'he-IL' : 'en-US', options);
+        }
+
+        function formatSize(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        }
+
+        async function fetchReleases() {
+            try {
+                const response = await fetch(API_URL);
+                const releases = await response.json();
+                
+                // Filter out releases that have assets
+                const validReleases = releases.filter(r => r.assets && r.assets.length > 0);
+                
+                if (validReleases.length > 0) {
+                    renderLatest(validReleases[0]);
+                    renderHistory(validReleases.slice(1));
+                } else {
+                    latestContainer.innerHTML = `<p class="text-red-500">No releases found.</p>`;
+                }
+            } catch (error) {
+                console.error(error);
+                latestContainer.innerHTML = `<p class="text-red-500">Failed to load releases.</p>`;
+            } finally {
+                loader.classList.add('hidden');
+            }
+        }
+
+        function renderLatest(release) {
+            const asset = release.assets.find(a => a.name.endsWith('.apk')) || release.assets[0];
+            const size = asset ? formatSize(asset.size) : '?';
+            const downloadUrl = asset ? asset.browser_download_url : '#';
+            
+            latestContainer.innerHTML = `
+                <div class="flex flex-col items-center">
+                    <span class="text-6xl mb-2 font-bold text-brand tracking-tighter">${release.tag_name.replace('v', '')}</span>
+                    <span class="text-sm text-slate-400 mb-6 flex items-center gap-2">
+                        <i class="fa-regular fa-calendar"></i>
+                        <span data-dynamic="date">${i18n[currentLang].released} ${formatDate(release.published_at)}</span>
+                        <span class="mx-1">•</span>
+                        <span>${size}</span>
+                    </span>
+                    
+                    <a href="${downloadUrl}" class="group relative bg-brand hover:bg-brand-dark text-white font-bold py-4 px-10 rounded-2xl shadow-lg shadow-brand/40 transition-all transform hover:-translate-y-1 w-full sm:w-auto flex items-center justify-center gap-3">
+                        <i class="fa-solid fa-download text-xl group-hover:animate-bounce"></i>
+                        <span class="text-lg" data-key="downloadBtn">${i18n[currentLang].downloadBtn}</span>
+                    </a>
+                    
+                    <div class="mt-3 text-xs text-slate-400 font-mono bg-slate-50 px-2 py-1 rounded">
+                        ${asset ? asset.name : 'unknown'}
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderHistory(releases) {
+            historyList.innerHTML = releases.map(release => {
+                const asset = release.assets.find(a => a.name.endsWith('.apk')) || release.assets[0];
+                if (!asset) return '';
+                
+                return `
+                    <a href="${asset.browser_download_url}" class="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition group">
+                        <div class="flex flex-col">
+                            <span class="font-bold text-slate-700">v${release.tag_name.replace('v', '')}</span>
+                            <span class="text-xs text-slate-400">${formatDate(release.published_at)}</span>
+                        </div>
+                        <div class="flex items-center gap-3 text-slate-300 group-hover:text-brand transition">
+                            <span class="text-xs font-mono hidden sm:inline-block">${formatSize(asset.size)}</span>
+                            <i class="fa-solid fa-cloud-arrow-down"></i>
+                        </div>
+                    </a>
+                `;
+            }).join('');
+        }
+
+        function updateTexts() {
+            const lang = i18n[currentLang];
+            
+            // Set direction
+            document.documentElement.dir = currentLang === 'he' ? 'rtl' : 'ltr';
+            document.documentElement.lang = currentLang;
+
+            // Static keys
+            document.querySelectorAll('[data-key]').forEach(el => {
+                const key = el.getAttribute('data-key');
+                if (lang[key]) el.textContent = lang[key];
+            });
+
+            // Button Label
+            langLabel.textContent = lang.langLabel;
+
+            // Re-render dates if content is loaded
+            if (latestContainer.innerHTML) {
+                // We re-fetch or just reload the page in a real SPA, 
+                // but here let's just re-trigger the fetch to keep it simple and accurate
+                loader.classList.remove('hidden');
+                fetchReleases();
+            }
+        }
+
+        function toggleLanguage() {
+            currentLang = currentLang === 'en' ? 'he' : 'en';
+            updateTexts();
+        }
+
+        // --- Event Listeners ---
+
+        langToggle.addEventListener('click', toggleLanguage);
+
+        historyToggle.addEventListener('click', () => {
+            historyList.classList.toggle('hidden');
+            historyIcon.style.transform = historyList.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
+        });
+
+        // Initialize
+        fetchReleases();
+
+    </script>
+</body>
+</html>
