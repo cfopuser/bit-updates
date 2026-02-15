@@ -65,7 +65,7 @@ jobs:
       - name: Sign with UberApkSigner
         if: steps.check_version.outputs.update_needed == 'true'
         run: |
-          # Use --overwrite to sign in-place (fixes argument conflict error)
+          # Use --overwrite to avoid argument conflicts, then rename manually
           java -jar ubersigner.jar \
             -a patched_unsigned.apk \
             --ks my_keystore.jks \
@@ -73,8 +73,8 @@ jobs:
             --ksKeyPass ${{ secrets.KEY_PASSWORD }} \
             --ksPass ${{ secrets.KEYSTORE_PASSWORD }} \
             --overwrite
-          
-          # Move and rename the signed file to a clean release folder
+
+          # Create release directory and move the file
           mkdir -p release
           mv patched_unsigned-aligned-signed.apk release/bit-patched-${{ steps.check_version.outputs.new_version }}.apk
 
@@ -84,18 +84,18 @@ jobs:
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           
-          # 1. Stage and Commit local changes
+          # Ensure we are on main and up to date to prevent push errors
+          git checkout main || git checkout -b main
+          git pull origin main --rebase
+          
           git add version.txt
-          git commit -m "Update patched version to ${{ steps.check_version.outputs.new_version }}"
+          git commit -m "Update patched version to ${{ steps.check_version.outputs.new_version }}" || echo "No changes to commit"
           
-          # 2. Pull latest remote changes (Rebase ensures our commit sits on top)
-          git pull --rebase origin main
-          
-          # 3. Create a tag for the release
+          # Tag the version for the release
           git tag v${{ steps.check_version.outputs.new_version }}
           
-          # 4. Push commit and tag to remote (HEAD:main forces push to main branch)
-          git push origin HEAD:main --tags
+          # Push changes and tags
+          git push origin main --tags
 
       - name: Create GitHub Release
         if: steps.check_version.outputs.update_needed == 'true'
@@ -104,17 +104,6 @@ jobs:
           tag_name: v${{ steps.check_version.outputs.new_version }}
           name: ${{ steps.check_version.outputs.new_version }}
           files: release/*.apk
-          body: |
-            Automated patch for version ${{ steps.check_version.outputs.new_version }}
-            - Downloaded from APKMirror
-            - Patched sideload check
-            - Signed with release key
+          body: "Automated patch for version ${{ steps.check_version.outputs.new_version }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload Artifact
-        if: steps.check_version.outputs.update_needed == 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: Patched-Bit-${{ steps.check_version.outputs.new_version }}
-          path: release/*.apk
