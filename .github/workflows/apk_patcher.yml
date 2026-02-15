@@ -84,17 +84,20 @@ jobs:
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           
-          # Ensure we are on main and up to date to prevent push errors
-          git checkout main || git checkout -b main
-          git pull origin main --rebase
-          
+          # 1. Stage the changes
           git add version.txt
+          
+          # 2. Commit locally (this clears the "unstaged changes" error)
           git commit -m "Update patched version to ${{ steps.check_version.outputs.new_version }}" || echo "No changes to commit"
           
-          # Tag the version for the release
+          # 3. Pull remote changes. If others committed in the meantime, 
+          #    your local commit will be replayed on top of theirs.
+          git pull origin main --rebase
+          
+          # 4. Tag the new commit
           git tag v${{ steps.check_version.outputs.new_version }}
           
-          # Push changes and tags
+          # 5. Push everything
           git push origin main --tags
 
       - name: Create GitHub Release
