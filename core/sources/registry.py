@@ -39,7 +39,10 @@ SOURCE_DEFINITIONS: dict[str, SourceDefinition] = {
 
 def create_source(source_name: str, app_config: dict) -> tuple[str, Any, str]:
     normalized = (source_name or "apkmirror").lower()
-    source_def = SOURCE_DEFINITIONS.get(normalized, SOURCE_DEFINITIONS["apkmirror"])
+    source_def = SOURCE_DEFINITIONS.get(normalized)
+    if source_def is None:
+        normalized = "apkmirror"
+        source_def = SOURCE_DEFINITIONS[normalized]
 
     lookup_value = app_config.get(source_def.lookup_field)
     if not lookup_value:

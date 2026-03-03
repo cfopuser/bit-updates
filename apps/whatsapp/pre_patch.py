@@ -1,80 +1,124 @@
 import os
+import shutil
 import subprocess
 import sys
-import shutil
+
+
+PATCHER_REPO = os.getenv(
+    "WHATSAPP_PATCHER_REPO",
+    "https://github.com/Schwartzblat/WhatsAppPatcher.git",
+)
+PATCHER_REF = os.getenv("WHATSAPP_PATCHER_REF", "main")
+PATCHER_DIR = "WhatsAppPatcher"
+
+
+def _clone_patcher(repo_dir: str):
+    if os.path.exists(repo_dir):
+        shutil.rmtree(repo_dir)
+
+    subprocess.check_call(
+        [
+            "git",
+            "clone",
+            "--depth",
+            "1",
+            "--branch",
+            PATCHER_REF,
+            PATCHER_REPO,
+            repo_dir,
+        ]
+    )
+
+
+def _install_dependencies(repo_dir: str):
+    subprocess.check_call(
+        [sys.executable, "-m", "pip", "install", "-r", os.path.join(repo_dir, "requirements.txt")]
+    )
+    subprocess.check_call(
+        [
+            sys.executable,
+            "-m",
+            "pip",
+            "install",
+            "stitch-test",
+            "--index-url",
+            "https://test.pypi.org/simple/",
+            "--extra-index-url",
+            "https://pypi.org/simple",
+        ]
+    )
+
+
+def _apply_firebase_bypass(repo_dir: str):
+    main_py_path = os.path.join(repo_dir, "main.py")
+    if os.path.exists(main_py_path):
+        with open(main_py_path, "r", encoding="utf-8") as file:
+            content = file.read()
+        content = content.replace("FirebaseParamsFinder(args),", "")
+        with open(main_py_path, "w", encoding="utf-8") as file:
+            file.write(content)
+
+    java_path = os.path.join(
+        repo_dir,
+        "smali_generator",
+        "app",
+        "src",
+        "main",
+        "java",
+        "com",
+        "smali_generator",
+        "TheAmazingPatch.java",
+    )
+    if os.path.exists(java_path):
+        with open(java_path, "r", encoding="utf-8") as file:
+            content = file.read()
+        content = content.replace("new FirebaseParams(),", "")
+        with open(java_path, "w", encoding="utf-8") as file:
+            file.write(content)
+
 
 def pre_patch(apk_path: str) -> bool:
     """
-    Applies the Schwartzblat WhatsAppPatcher logic.
+    Applies Schwartzblat WhatsApp patcher on the downloaded APK.
     """
-    print(f"[*] Starting WhatsApp Schwartzblat Patcher logic on {apk_path}...")
+    print(f"[*] [WhatsApp] Running APK-level patcher for: {apk_path}")
 
-    repo_url = "https://github.com/Schwartzblat/WhatsAppPatcher.git"
-    repo_dir = "WhatsAppPatcher"
+    if not os.path.exists(apk_path):
+        print(f"[-] [WhatsApp] APK not found: {apk_path}")
+        return False
+
+    patched_apk = "latest_patched.apk"
 
     try:
-        # 1. Clone the repository with submodules if it doesn't exist
-        if os.path.exists(repo_dir):
-            print(f"[*] Cleaning up existing {repo_dir}...")
-            shutil.rmtree(repo_dir)
-        
-        print(f"[*] Cloning {repo_url}...")
-        subprocess.check_call(["git", "clone", "--recurse-submodules", repo_url, repo_dir])
+        print(f"[*] [WhatsApp] Cloning patcher ({PATCHER_REF})...")
+        _clone_patcher(PATCHER_DIR)
 
-        # 2. Install dependencies
-        print("[*] Installing Patcher Dependencies...")
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", os.path.join(repo_dir, "requirements.txt")])
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "stitch-test", 
-                               "--index-url", "https://test.pypi.org/simple/", 
-                               "--extra-index-url", "https://pypi.org/simple"])
+        print("[*] [WhatsApp] Installing patcher dependencies...")
+        _install_dependencies(PATCHER_DIR)
 
-        # 3. Apply Firebase bypass
-        print("[*] Bypassing Firebase patch in WhatsAppPatcher...")
-        main_py_path = os.path.join(repo_dir, "main.py")
-        if os.path.exists(main_py_path):
-            with open(main_py_path, 'r', encoding='utf-8') as f:
-                content = f.read()
-            content = content.replace('FirebaseParamsFinder(args),', '')
-            with open(main_py_path, 'w', encoding='utf-8') as f:
-                f.write(content)
-        
-        java_path = os.path.join(repo_dir, "smali_generator/app/src/main/java/com/smali_generator/TheAmazingPatch.java")
-        if os.path.exists(java_path):
-            with open(java_path, 'r', encoding='utf-8') as f:
-                java_content = f.read()
-            java_content = java_content.replace('new FirebaseParams(),', '')
-            with open(java_path, 'w', encoding='utf-8') as f:
-                f.write(java_content)
+        print("[*] [WhatsApp] Applying Firebase bypass customization...")
+        _apply_firebase_bypass(PATCHER_DIR)
 
-        # 4. Run the patcher
-        patched_apk = "latest_patched.apk"
-        print(f"[*] Running Patcher on {apk_path}...")
-        # Schwartzblat patcher expects absolute or relative path to APK. 
-        # We need to make sure we handle the paths correctly since we'll be calling it from inside repo_dir or passing absolute paths.
         abs_apk_path = os.path.abspath(apk_path)
-        abs_patched_apk = os.path.abspath(patched_apk)
-        
-        # We run it from the repo_dir to ensure it finds its own modules
-        subprocess.check_call([sys.executable, "main.py", "-p", abs_apk_path, "-o", abs_patched_apk, "--no-sign"], cwd=repo_dir)
+        abs_output_path = os.path.abspath(patched_apk)
 
-        # 5. Replace original APK
-        if os.path.exists(patched_apk):
-            print(f"[+] WhatsApp Patch successful. Replacing {apk_path}.")
-            shutil.move(patched_apk, apk_path)
-            return True
-        else:
-            print("[-] WhatsApp Patch failed. Output file not found.")
+        print("[*] [WhatsApp] Executing patcher...")
+        subprocess.check_call(
+            [sys.executable, "main.py", "-p", abs_apk_path, "-o", abs_output_path, "--no-sign"],
+            cwd=PATCHER_DIR,
+        )
+
+        if not os.path.exists(patched_apk):
+            print("[-] [WhatsApp] Patcher completed without output APK.")
             return False
 
-    except Exception as e:
-        print(f"[-] Error in WhatsApp pre-patch: {e}")
+        shutil.move(patched_apk, apk_path)
+        print(f"[+] [WhatsApp] Pre-patch successful: {apk_path}")
+        return True
+
+    except Exception as exc:
+        print(f"[-] [WhatsApp] Pre-patch failed: {exc}")
         return False
     finally:
-        # Optional: cleanup repo_dir if needed, but keeping it might speed up subsequent runs if cached
-        pass
-
-if __name__ == "__main__":
-    # Test call
-    import sys
-    if len(sys.argv) > 1:
-        pre_patch(sys.argv[1])
+        if os.getenv("WHATSAPP_KEEP_PATCHER_DIR", "").lower() != "true" and os.path.exists(PATCHER_DIR):
+            shutil.rmtree(PATCHER_DIR)

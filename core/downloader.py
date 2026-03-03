@@ -17,6 +17,10 @@ from core.sources import create_source
 from core.utils import get_local_version
 
 
+class DownloadError(RuntimeError):
+    """Raised when update check/download fails for operational reasons."""
+
+
 DEFAULT_HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -135,8 +139,7 @@ def download_app(app_config: dict, output_filename: str = "latest.apk") -> tuple
     try:
         source_name, source, lookup_value = create_source(source_name, app_config)
     except Exception as e:
-        print(f"[-] [{app_name}] Source configuration error: {e}")
-        return False, None
+        raise DownloadError(f"[{app_name}] Source configuration error: {e}") from e
 
     print(f"[*] [{app_name}] Using source: {source_name}")
 
@@ -148,12 +151,10 @@ def download_app(app_config: dict, output_filename: str = "latest.apk") -> tuple
     try:
         remote_version, release_url, title = source.get_latest_version(lookup_value)
     except Exception as e:
-        print(f"[-] [{app_name}] Search failed: {e}")
-        return False, None
+        raise DownloadError(f"[{app_name}] Search failed: {e}") from e
 
     if not remote_version:
-        print(f"[-] [{app_name}] No results found on {source_name}.")
-        return False, None
+        raise DownloadError(f"[{app_name}] No results found on {source_name}.")
 
     print(f"[*] [{app_name}] Latest release: {title}")
     print(f"[*] [{app_name}] Remote version: {remote_version}")
@@ -169,8 +170,7 @@ def download_app(app_config: dict, output_filename: str = "latest.apk") -> tuple
     try:
         direct_link = source.get_download_url(release_url)
         if not direct_link:
-            print(f"[-] [{app_name}] Failed to resolve direct download link.")
-            return False, None
+            raise DownloadError(f"[{app_name}] Failed to resolve direct download link.")
 
         print(f"[*] [{app_name}] Downloading from {source_name} to {output_filename}...")
         headers = getattr(source, "headers", DEFAULT_HEADERS)
@@ -178,18 +178,14 @@ def download_app(app_config: dict, output_filename: str = "latest.apk") -> tuple
         response = downloader.get(direct_link, stream=True, headers=headers, allow_redirects=True)
         try:
             if response.status_code != 200:
-                print(f"[-] [{app_name}] Download failed with status: {response.status_code}")
+                detail = f"HTTP {response.status_code}"
                 if response.status_code == 403:
-                    print(
-                        f"[-] [{app_name}] Access Forbidden. This could be due to "
-                        "IP blocking or scraper detection."
-                    )
-                return False, None
+                    detail += " (possible blocking or scraper detection)"
+                raise DownloadError(f"[{app_name}] Download failed: {detail}")
 
             content_type = (response.headers.get("Content-Type") or "").lower()
             if content_type.startswith("text/html"):
-                print(f"[-] [{app_name}] Received HTML page instead of package binary.")
-                return False, None
+                raise DownloadError(f"[{app_name}] Received HTML instead of package binary.")
 
             response_filename = _extract_filename_from_response(response)
             extension = _detect_extension(response, response_filename)
@@ -204,13 +200,13 @@ def download_app(app_config: dict, output_filename: str = "latest.apk") -> tuple
 
         _normalize_downloaded_file(temp_download, output_filename)
         if not _is_valid_apk(output_filename):
-            print(f"[-] [{app_name}] Final output is not a valid APK: {output_filename}")
-            return False, None
+            raise DownloadError(f"[{app_name}] Final output is not a valid APK: {output_filename}")
 
         print(f"[+] [{app_name}] Download complete: {output_filename}")
         # Note: Version is updated by the orchestrator (run.py or CI) only on success.
         return True, remote_version
 
+    except DownloadError:
+        raise
     except Exception as e:
-        print(f"[-] [{app_name}] Error during download process: {e}")
-        return False, None
+        raise DownloadError(f"[{app_name}] Error during download process: {e}") from e

@@ -8,6 +8,7 @@
   "icon_url": "https://upload.wikimedia.org/wikipedia/commons/1/19/Spotify_logo_without_text.svg",
   "source": "aptoide",
   "skip_mitm": true,
+  "inject_updater": false,
   "maintainer": "lilor159357",
   "version_file": "apps/spotify/version.txt",
   "status_file": "apps/spotify/status.json"

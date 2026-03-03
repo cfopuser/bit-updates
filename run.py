@@ -1,4 +1,3 @@
-## File: run.py
 #!/usr/bin/env python3
 """
 Orchestrator for the modular APK patching framework.
@@ -11,7 +10,6 @@ Usage:
 """
 
 import argparse
-import json
 import sys
 
 from core.utils import (
@@ -23,10 +21,9 @@ from core.utils import (
     update_status,
     update_version,
 )
-from core.downloader import download_app
+from core.downloader import DownloadError, download_app
 from core.pre_patcher import run_pre_patch
 from core.patcher import run_patch
-from core.binary_plugin import run_binary_patch
 
 
 def process_app(app_id: str, step: str = "all", no_mitm: bool = False) -> bool:
@@ -58,7 +55,29 @@ def process_app(app_id: str, step: str = "all", no_mitm: bool = False) -> bool:
     # Use a consistent name so the GitHub Action workflow knows what to look for
     output_filename = "latest.apk"
     if step in ("download", "all"):
-        update_needed, new_version = download_app(config, output_filename=output_filename)
+        try:
+            update_needed, new_version = download_app(config, output_filename=output_filename)
+        except DownloadError as e:
+            print(f"[-] [{app_id}] {e}")
+            update_status(
+                config["status_file"],
+                success=False,
+                failed_version="unknown",
+                error_message=str(e),
+            )
+            set_github_output("update_needed", "false")
+            return False
+        except Exception as e:
+            print(f"[-] [{app_id}] Unexpected download error: {e}")
+            update_status(
+                config["status_file"],
+                success=False,
+                failed_version="unknown",
+                error_message=f"Unexpected download error: {e}",
+            )
+            set_github_output("update_needed", "false")
+            return False
+
         set_github_output("update_needed", str(update_needed).lower())
 
         if new_version:
@@ -67,11 +86,7 @@ def process_app(app_id: str, step: str = "all", no_mitm: bool = False) -> bool:
         if not update_needed:
             print(f"[i] [{app_id}] No update needed. Done.")
             return True
-            
-        if not run_binary_patch(app_id, output_filename):
-            print(f"[-] [{app_id}] Binary patch failed. Aborting.")
-            return False    
-        
+
         if not no_mitm and not config.get("skip_mitm", False):
             # Run MITM and check success
             mitm_success = run_apk_mitm(output_filename)
@@ -79,12 +94,12 @@ def process_app(app_id: str, step: str = "all", no_mitm: bool = False) -> bool:
                 print(f"[-] [{app_id}] apk-mitm failed. Aborting to prevent bad patch.")
                 return False
 
+        pre_patch_success = run_pre_patch(app_id, output_filename)
+        if not pre_patch_success:
+            print(f"[-] [{app_id}] Pre-patching failed. Aborting.")
+            return False
+
         if step == "download":
-            # Run pre-patch even in download-only step to ensure the APK is prepared for subsequent manual steps if needed
-            pre_patch_success = run_pre_patch(app_id, output_filename)
-            if not pre_patch_success:
-                print(f"[-] [{app_id}] Pre-patching failed. Aborting.")
-                return False
             return True
 
     # --- Patch step ---
@@ -210,7 +225,7 @@ Examples:
     print("  Summary")
     print(f"{'='*50}")
     for app_id, success in results.items():
-        status = "✓ OK" if success else "✗ FAILED"
+        status = "OK" if success else "FAILED"
         print(f"  {app_id}: {status}")
     print()
 

@@ -8,6 +8,7 @@
   "icon_url": "https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg",
   "source": "aptoide",
   "skip_mitm": true,
+  "inject_updater": true,
   "version_file": "apps/whatsapp/version.txt",
   "status_file": "apps/whatsapp/status.json",
   "updater_target_smali": "com/whatsapp/home/ui/HomeActivity.smali",

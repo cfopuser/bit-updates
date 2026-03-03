@@ -2,7 +2,7 @@
   "id": "termux",
   "name": "Termux",
   "name_he": "Termux",
-  "package_name": " com.termux.api",
+  "package_name": "com.termux.api",
   "description": "Android terminal app — patched to be used in netfree.",
   "description_he": "אפליקציית טרמינל לאנדרואיד — ערוכה לשימוש בנטפרי.",
   "icon_url": "http://upload.wikimedia.org/wikipedia/commons/b/b5/Termux.svg",

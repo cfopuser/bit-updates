@@ -2,12 +2,12 @@
 Generic patch runner — dynamically loads an app's patch.py module.
 """
 
-import importlib
 import importlib.util
 import os
-import sys
 
+from core.cloner import run_clone
 from core.universal_updater import inject_universal_updater
+from core.utils import load_app_config
 
 
 def run_patch(app_id: str, decompiled_dir: str) -> bool:
@@ -54,12 +54,34 @@ def run_patch(app_id: str, decompiled_dir: str) -> bool:
         print(f"[-] [{app_id}] Patch returned failure.")
         return False
 
-    if app_id != "spotify":
+    config = {}
+    try:
+        config = load_app_config(app_id)
+    except Exception:
+        # Keep patch runner resilient in unit tests and local ad-hoc runs.
+        config = {}
+
+    clone_config = config.get("clone_config")
+    if clone_config:
+        print(f"[*] [{app_id}] Applying clone configuration...")
+        if not run_clone(decompiled_dir, clone_config):
+            print(f"[-] [{app_id}] Clone stage failed.")
+            return False
+
+    inject_updater = bool(config.get("inject_updater", True))
+    if inject_updater:
+        target_smali = config.get("updater_target_smali")
         print(f"[*] [{app_id}] Applying updater injection...")
-        updater_success = inject_universal_updater(decompiled_dir=decompiled_dir, app_id=app_id)
+        updater_success = inject_universal_updater(
+            decompiled_dir=decompiled_dir,
+            app_id=app_id,
+            target_activity_smali=target_smali,
+        )
         if not updater_success:
             print(f"[-] [{app_id}] Updater injection failed.")
             return False
+    else:
+        print(f"[*] [{app_id}] Updater injection disabled by config.")
 
     print(f"[+] [{app_id}] Patch completed successfully!")
 

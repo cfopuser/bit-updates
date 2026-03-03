@@ -1,157 +1,163 @@
+"""
+Package clone transformer for decompiled APKs.
+"""
+
+from __future__ import annotations
+
 import os
 import re
 import xml.etree.ElementTree as ET
 
 
+ANDROID_NS = "http://schemas.android.com/apk/res/android"
+
+
+def _resolve_component_name(name: str, package_name: str) -> str:
+    if not name:
+        return name
+    if name.startswith("."):
+        return package_name + name
+    if "." not in name:
+        return f"{package_name}.{name}"
+    return name
+
+
+def _update_manifest(decompiled_dir: str, old_pkg: str, new_pkg: str) -> bool:
+    manifest_path = os.path.join(decompiled_dir, "AndroidManifest.xml")
+    if not os.path.exists(manifest_path):
+        print("[-] [Cloner] AndroidManifest.xml not found.")
+        return False
+
+    attr_name = f"{{{ANDROID_NS}}}name"
+    attr_authorities = f"{{{ANDROID_NS}}}authorities"
+    attr_target = f"{{{ANDROID_NS}}}targetActivity"
+
+    ET.register_namespace("android", ANDROID_NS)
+
+    try:
+        tree = ET.parse(manifest_path)
+        root = tree.getroot()
+    except ET.ParseError as exc:
+        print(f"[-] [Cloner] Failed to parse AndroidManifest.xml: {exc}")
+        return False
+
+    manifest_package = root.get("package") or old_pkg
+
+    for tag in ("activity", "activity-alias", "service", "receiver", "provider"):
+        for elem in root.iter(tag):
+            name = elem.get(attr_name)
+            if name:
+                elem.set(attr_name, _resolve_component_name(name, manifest_package))
+
+            target = elem.get(attr_target)
+            if target:
+                elem.set(attr_target, _resolve_component_name(target, manifest_package))
+
+    for provider in root.iter("provider"):
+        authorities = provider.get(attr_authorities)
+        if not authorities:
+            continue
+        updated = []
+        for authority in authorities.split(";"):
+            value = authority.strip()
+            if not value:
+                continue
+            if old_pkg in value:
+                updated.append(value.replace(old_pkg, new_pkg))
+            elif value.startswith(new_pkg):
+                updated.append(value)
+            else:
+                updated.append(f"{new_pkg}_{value}")
+        provider.set(attr_authorities, ";".join(updated))
+
+    for tag in ("permission", "uses-permission", "uses-permission-sdk-23"):
+        for elem in root.iter(tag):
+            value = (elem.get(attr_name) or "").strip()
+            if not value:
+                continue
+            if value.startswith("android.permission.") or value.startswith("com.android."):
+                continue
+            if old_pkg in value:
+                elem.set(attr_name, value.replace(old_pkg, new_pkg))
+            elif value.startswith(new_pkg):
+                continue
+            else:
+                elem.set(attr_name, f"{new_pkg}_{value}")
+
+    root.set("package", new_pkg)
+
+    tree.write(manifest_path, encoding="utf-8", xml_declaration=True)
+    print("    [+] [Cloner] AndroidManifest.xml updated.")
+    return True
+
+
+def _update_apktool_yml(decompiled_dir: str, new_pkg: str):
+    apktool_yml_path = os.path.join(decompiled_dir, "apktool.yml")
+    if not os.path.exists(apktool_yml_path):
+        return
+
+    with open(apktool_yml_path, "r", encoding="utf-8") as file:
+        content = file.read()
+
+    if "renameManifestPackage:" in content:
+        content = re.sub(r"renameManifestPackage:.*", f"renameManifestPackage: {new_pkg}", content)
+    else:
+        content += f"\nrenameManifestPackage: {new_pkg}\n"
+
+    with open(apktool_yml_path, "w", encoding="utf-8") as file:
+        file.write(content)
+
+    print("    [+] [Cloner] apktool.yml updated.")
+
+
+def _update_app_name_suffix(decompiled_dir: str, suffix: str):
+    if not suffix:
+        return
+
+    strings_path = os.path.join(decompiled_dir, "res", "values", "strings.xml")
+    if not os.path.exists(strings_path):
+        return
+
+    try:
+        with open(strings_path, "r", encoding="utf-8") as file:
+            content = file.read()
+    except Exception as exc:
+        print(f"    [-] [Cloner] Failed to read strings.xml: {exc}")
+        return
+
+    updated = re.sub(
+        r'(<string name="app_name">)(.*?)(</string>)',
+        rf"\1\2{suffix}\3",
+        content,
+        count=1,
+    )
+    if updated == content:
+        return
+
+    with open(strings_path, "w", encoding="utf-8") as file:
+        file.write(updated)
+    print(f"    [+] [Cloner] App name suffix applied: {suffix!r}")
+
+
 def run_clone(decompiled_dir: str, clone_config: dict) -> bool:
     """
-    Apply a perfect MT-Manager style clone logic to AndroidManifest.xml.
-    - No Smali modification.
-    - Resolves relative classes.
-    - Prefixes Authorities and Permissions exactly like MT Manager.
-    - Ignores <action> and <category> tags.
+    Apply package clone transformations.
     """
-    old_pkg = clone_config.get("old_pkg")
-    new_pkg = clone_config.get("new_pkg")
+    old_pkg = (clone_config.get("old_pkg") or "").strip()
+    new_pkg = (clone_config.get("new_pkg") or "").strip()
     app_name_suffix = clone_config.get("app_name_suffix", " (Cloned)")
 
-
-    if not all([old_pkg, new_pkg]):
-        print("[-] [Cloner] 'old_pkg' and 'new_pkg' are required in clone_config.")
+    if not old_pkg or not new_pkg:
+        print("[-] [Cloner] 'old_pkg' and 'new_pkg' are required.")
         return False
 
+    print(f"[*] [Cloner] Cloning package: {old_pkg} -> {new_pkg}")
 
-    print(f"\n[*] [Cloner] Starting Smart Clone: {old_pkg} -> {new_pkg}")
-
-
-    # Setup XML namespaces for Android
-    ET.register_namespace('android', '                                              ;)
-    ns_android = '                                              ;
-    attr_name = f'{{{ns_android}}}name'
-    attr_auth = f'{{{ns_android}}}authorities'
-    attr_target = f'{{{ns_android}}}targetActivity'
-
-
-    # ==========================================
-    # 1. Edit AndroidManifest.xml safely via XML
-    # ==========================================
-    manifest_path = os.path.join(decompiled_dir, "AndroidManifest.xml")
-    if os.path.exists(manifest_path):
-        try:
-            tree = ET.parse(manifest_path)
-            root = tree.getroot()
-
-
-            # Step A: Resolve relative paths (MUST do before changing the package)
-            components =['application', 'activity', 'activity-alias', 'service', 'receiver', 'provider']
-            for tag in components:
-                for elem in root.iter(tag):
-                    name = elem.get(attr_name)
-                    if name and name.startswith('.'):
-                        elem.set(attr_name, old_pkg + name)
-
-
-                    target = elem.get(attr_target)
-                    if target and target.startswith('.'):
-                        elem.set(attr_target, old_pkg + target)
-
-
-            # Step B: Change Root Package
-            root.set('package', new_pkg)
-
-
-            # Step C: Update Authorities (Critical for <provider>)
-            # MT Manager Rule: If it contains old_pkg, replace. Otherwise, prepend new_pkg + "_"
-            for provider in root.iter('provider'):
-                auths = provider.get(attr_auth)
-                if auths:
-                    new_auth_list =[]
-                    for a in auths.split(';'):
-                        if old_pkg in a:
-                            new_auth_list.append(a.replace(old_pkg, new_pkg))
-                        else:
-                            # Matches MT Manager output on row 185 (e.g. com.whatsapp.kosher_androidx...)
-                            new_auth_list.append(f"{new_pkg}_{a}")
-                    provider.set(attr_auth, ";".join(new_auth_list))
-
-
-            # Step D: Update Permissions only (Do NOT touch <action> or <category>)
-            tags_to_check =['permission', 'uses-permission', 'uses-permission-sdk-23']
-            for tag in tags_to_check:
-                for elem in root.iter(tag):
-                    val = elem.get(attr_name)
-                    if val:
-                        # Skip standard Android permissions (android.permission.* / com.android.*)
-                        if val.startswith("android.permission.") or val.startswith("com.android."):
-                            continue
-
-
-                        # Replace if old package name exists, otherwise prepend
-                        if old_pkg in val:
-                            elem.set(attr_name, val.replace(old_pkg, new_pkg))
-                        else:
-                            elem.set(attr_name, f"{new_pkg}_{val}")
-
-
-            # Step E: Write back Manifest
-            tree.write(manifest_path, encoding='utf-8', xml_declaration=True)
-            print("    [+] AndroidManifest.xml parsed and modified successfully.")
-
-
-        except ET.ParseError as e:
-            print(f"[-] [Cloner] Failed to parse AndroidManifest.xml: {e}")
-            return False
-    else:
-        print("[-] [Cloner] AndroidManifest.xml not found!")
+    if not _update_manifest(decompiled_dir, old_pkg, new_pkg):
         return False
 
+    _update_apktool_yml(decompiled_dir, new_pkg)
+    _update_app_name_suffix(decompiled_dir, app_name_suffix)
 
-
-
-    # ==========================================
-    # 2. Update apktool.yml (Manifest Renaming)
-    # ==========================================
-    apktool_yml_path = os.path.join(decompiled_dir, "apktool.yml")
-    if os.path.exists(apktool_yml_path):
-        with open(apktool_yml_path, 'r', encoding='utf-8') as f:
-            yml_content = f.read()
-
-
-        if "renameManifestPackage:" in yml_content:
-            yml_content = re.sub(r'renameManifestPackage:.*', f'renameManifestPackage: {new_pkg}', yml_content)
-        else:
-            yml_content += f'\nrenameManifestPackage: {new_pkg}\n'
-
-
-        with open(apktool_yml_path, 'w', encoding='utf-8') as f:
-            f.write(yml_content)
-        print("    [+] apktool.yml configured for new package.")
-
-
-    # ==========================================
-    # 3. Change App Name in strings.xml
-    # ==========================================
-    strings_path = os.path.join(decompiled_dir, "res", "values", "strings.xml")
-    if os.path.exists(strings_path):
-        try:
-            with open(strings_path, 'r', encoding='utf-8') as f:
-                strings_content = f.read()
-
-
-            new_content = re.sub(
-                r'(<string name="app_name">)(.*?)(</string>)', 
-                rf'\1\2{app_name_suffix}\3', 
-                strings_content
-            )
-
-
-            if new_content != strings_content:
-                with open(strings_path, 'w', encoding='utf-8') as f:
-                    f.write(new_content)
-                print(f"    [+] App name updated (added suffix: '{app_name_suffix}').")
-        except Exception as e:
-             print(f"    [-] Could not update strings.xml: {e}")
-
-
-    print("    [+] [Cloner] Clone applied successfully!")
+    print("    [+] [Cloner] Clone stage completed.")
     return True

@@ -3,8 +3,10 @@ import re
 import shutil
 import xml.etree.ElementTree as ET
 
+from core.repository import resolve_repository
+
 def get_package_name(manifest_path: str) -> str:
-    """קורא את ה-AndroidManifest.xml כדי לחלץ את שם החבילה של האפליקציה."""
+    """×§×•×¨× ××ª ×”-AndroidManifest.xml ×›×“×™ ×œ×—×œ×¥ ××ª ×©× ×”×—×‘×™×œ×” ×©×œ ×”××¤×œ×™×§×¦×™×”."""
     try:
         tree = ET.parse(manifest_path)
         root = tree.getroot()
@@ -14,13 +16,13 @@ def get_package_name(manifest_path: str) -> str:
         return None
 
 def get_main_activity_smali_path(manifest_path: str) -> str:
-    """סורק את ה-AndroidManifest.xml כדי למצוא אוטומטית את מסך הפתיחה (MainActivity)."""
+    """×¡×•×¨×§ ××ª ×”-AndroidManifest.xml ×›×“×™ ×œ×ž×¦×•× ××•×˜×•×ž×˜×™×ª ××ª ×ž×¡×š ×”×¤×ª×™×—×” (MainActivity)."""
     try:
         tree = ET.parse(manifest_path)
         root = tree.getroot()
         ns = {'android': 'http://schemas.android.com/apk/res/android'}
         
-        # פונקציית עזר לבדיקה אם אלמנט מכיל הגדרות של מסך פתיחה
+        # ×¤×•× ×§×¦×™×™×ª ×¢×–×¨ ×œ×‘×“×™×§×” ×× ××œ×ž× ×˜ ×ž×›×™×œ ×”×’×“×¨×•×ª ×©×œ ×ž×¡×š ×¤×ª×™×—×”
         def is_main_launcher(element):
             is_main = False
             is_launcher = False
@@ -35,21 +37,21 @@ def get_main_activity_smali_path(manifest_path: str) -> str:
 
         target_activity_name = None
 
-        # 1. חיפוש קודם כל בתגיות activity רגילות
+        # 1. ×—×™×¤×•×© ×§×•×“× ×›×œ ×‘×ª×’×™×•×ª activity ×¨×’×™×œ×•×ª
         for activity in root.iter('activity'):
             if is_main_launcher(activity):
                 target_activity_name = activity.get(f"{{{ns['android']}}}name")
                 break
         
-        # 2. אם לא מצאנו (כמו בספוטיפיי), נחפש בתוך תגיות activity-alias
+        # 2. ×× ×œ× ×ž×¦×× ×• (×›×ž×• ×‘×¡×¤×•×˜×™×¤×™×™), × ×—×¤×© ×‘×ª×•×š ×ª×’×™×•×ª activity-alias
         if not target_activity_name:
             for alias in root.iter('activity-alias'):
                 if is_main_launcher(alias):
-                    # ב-alias, השם האמיתי נמצא במאפיין targetActivity
+                    # ×‘-alias, ×”×©× ×”××ž×™×ª×™ × ×ž×¦× ×‘×ž××¤×™×™×Ÿ targetActivity
                     target_activity_name = alias.get(f"{{{ns['android']}}}targetActivity")
                     break
                     
-        # אם מצאנו, נמיר אותו לנתיב של קובץ Smali
+        # ×× ×ž×¦×× ×•, × ×ž×™×¨ ××•×ª×• ×œ× ×ª×™×‘ ×©×œ ×§×•×‘×¥ Smali
         if target_activity_name:
             if target_activity_name.startswith("."):
                 target_activity_name = root.get('package') + target_activity_name
@@ -67,7 +69,7 @@ def patch(decompiled_dir: str) -> bool:
     manifest_path = os.path.join(decompiled_dir, "AndroidManifest.xml")
 
     # =========================================================================
-    # חלק 1: הלוגיקה הייחודית של ספוטיפיי (מחיקת תמונות, וידאו, ו-Worker)
+    # ×—×œ×§ 1: ×”×œ×•×’×™×§×” ×”×™×™×—×•×“×™×ª ×©×œ ×¡×¤×•×˜×™×¤×™×™ (×ž×—×™×§×ª ×ª×ž×•× ×•×ª, ×•×™×“××•, ×•-Worker)
     # =========================================================================
     print("[*] Applying Spotify-specific patches...")
     target_worker_file = "sharehousekeepingworker.smali"
@@ -101,24 +103,15 @@ def patch(decompiled_dir: str) -> bool:
                 print("[+] Patched VideoSurfaceView")
 
     # =========================================================================
-    # חלק 2: הזרקת מנגנון העדכון האוניברסלי
+    # ×—×œ×§ 2: ×”×–×¨×§×ª ×ž× ×’× ×•×Ÿ ×”×¢×“×›×•×Ÿ ×”××•× ×™×‘×¨×¡×œ×™
     # =========================================================================
     print("\n[*] Applying Universal Updater patch...")
     
     app_id = os.path.basename(current_script_dir)
 
-    # --- תיקון: זיהוי דינמי של הריפו ---
-    # מנסה לקחת את השם "User/Repo" מתוך משתני הסביבה של GitHub Actions
-    github_repo_env = os.getenv('GITHUB_REPOSITORY')
-    
-    if github_repo_env:
-        # אם אנחנו רצים בתוך GitHub Action
-        repo_owner, repo_name = github_repo_env.split('/')
-    else:
-        # ברירת מחדל למקרה שמריצים ידנית במחשב (Local)
-        # כאן תכתוב את הפרטים שלך למקרה של בדיקות מקומיות
-        repo_owner = "lilor159357"
-        repo_name = "spotify-no-images"
+    # --- ×ª×™×§×•×Ÿ: ×–×™×”×•×™ ×“×™× ×ž×™ ×©×œ ×”×¨×™×¤×• ---
+    # ×ž× ×¡×” ×œ×§×—×ª ××ª ×”×©× "User/Repo" ×ž×ª×•×š ×ž×©×ª× ×™ ×”×¡×‘×™×‘×” ×©×œ GitHub Actions
+    repo_owner, repo_name = resolve_repository()
 
     print(f"[i] Detected Repo: {repo_owner}/{repo_name}")
 
@@ -141,9 +134,9 @@ def patch(decompiled_dir: str) -> bool:
 
     if not os.path.exists(payload_dir):
         print("[!] Warning: Updater payload directory not found! Skipping updater injection.")
-        return True # נחזיר True כי הפאצ' של ספוטיפיי כבר עבד
+        return True # × ×—×–×™×¨ True ×›×™ ×”×¤××¦' ×©×œ ×¡×¤×•×˜×™×¤×™×™ ×›×‘×¨ ×¢×‘×“
 
-    # -- א. העתקת קבצי העדכון והחלפת הפלייסחולדרים --
+    # -- ×. ×”×¢×ª×§×ª ×§×‘×¦×™ ×”×¢×“×›×•×Ÿ ×•×”×—×œ×¤×ª ×”×¤×œ×™×™×¡×—×•×œ×“×¨×™× --
     try:
         max_dex = max(
             [int(d.replace("smali_classes", "")) for d in os.listdir(decompiled_dir) if d.startswith("smali_classes") and d.replace("smali_classes", "").isdigit()]
@@ -185,7 +178,7 @@ def patch(decompiled_dir: str) -> bool:
         print(f"[-] Failed to copy or patch updater payload: {e}")
         return False
 
-    # -- ב. עדכון ה-AndroidManifest.xml --
+    # -- ×‘. ×¢×“×›×•×Ÿ ×”-AndroidManifest.xml --
     try:
         with open(manifest_path, 'r', encoding='utf-8') as f:
             manifest_content = f.read()
@@ -221,7 +214,7 @@ def patch(decompiled_dir: str) -> bool:
         print(f"[-] Failed to patch AndroidManifest.xml: {e}")
         return False
 
-    # -- ג. הזרקת קוד העדכון למסך הראשי (MainActivity) --
+    # -- ×’. ×”×–×¨×§×ª ×§×•×“ ×”×¢×“×›×•×Ÿ ×œ×ž×¡×š ×”×¨××©×™ (MainActivity) --
     if not target_activity_smali:
         print("[!] Warning: Could not detect Main Activity automatically.")
         return False

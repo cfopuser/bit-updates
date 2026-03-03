@@ -123,26 +123,17 @@ jobs:
           mkdir -p release
           mv patched_unsigned-aligned-signed.apk release/${{ matrix.app }}-patched-${{ steps.check_version.outputs.new_version }}.apk
 
-      # ── Status tracking ──
-      - name: Update status on success
-        if: steps.check_version.outputs.update_needed == 'true' && success()
-        run: |
-          python -c "
-          from core.utils import update_status
-          update_status('apps/${{ matrix.app }}/status.json', success=True)
-          "
-
       - name: Update version file
         if: steps.check_version.outputs.update_needed == 'true' && success()
         run: echo "${{ steps.check_version.outputs.new_version }}" > apps/${{ matrix.app }}/version.txt
 
-      - name: Update status on failure
-        if: failure()
+      - name: Mark status on build/sign failure
+        if: steps.check_version.outputs.update_needed == 'true' && failure()
         run: |
           FAILED_VER="${{ steps.check_version.outputs.new_version || 'unknown' }}"
           python -c "
           from core.utils import update_status
-          update_status('apps/${{ matrix.app }}/status.json', success=False, failed_version='$FAILED_VER', error_message='Patching or building failed')
+          update_status('apps/${{ matrix.app }}/status.json', success=False, failed_version='$FAILED_VER', error_message='Build/sign/release failed after patch stage')
           "
 
       # ── Commit changes ──

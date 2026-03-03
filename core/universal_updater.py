@@ -9,6 +9,8 @@ import re
 import shutil
 import xml.etree.ElementTree as ET
 
+from core.repository import resolve_repository
+
 
 def _get_package_name(manifest_path: str) -> str | None:
     """Return the Android package name from AndroidManifest.xml."""
@@ -68,14 +70,7 @@ def _get_main_activity_smali_path(manifest_path: str) -> str | None:
 
 def _resolve_repository() -> tuple[str, str]:
     """Resolve owner/repo for updater URLs."""
-    github_repo = os.getenv("GITHUB_REPOSITORY", "").strip()
-    if github_repo and "/" in github_repo:
-        owner, repo = github_repo.split("/", 1)
-        return owner, repo
-
-    owner = os.getenv("UPDATER_REPO_OWNER", "lilor159357")
-    repo = os.getenv("UPDATER_REPO_NAME", "spotify-no-images")
-    return owner, repo
+    return resolve_repository()
 
 
 def _next_smali_classes_dir(decompiled_dir: str) -> str:
@@ -253,10 +248,25 @@ def _inject_updater_call(activity_file_path: str) -> bool:
         return False
 
 
+def _normalize_smali_path(smali_path: str | None) -> str | None:
+    if not smali_path:
+        return None
+
+    value = smali_path.strip().lstrip("/\\")
+    if not value:
+        return None
+
+    if value.endswith(".smali"):
+        return value.replace("\\", "/")
+
+    return value.replace(".", "/") + ".smali"
+
+
 def inject_universal_updater(
     decompiled_dir: str,
     app_id: str,
     payload_dir: str | None = None,
+    target_activity_smali: str | None = None,
 ) -> bool:
     """
     Inject updater payload and startup hook into an APK decompile.
@@ -271,7 +281,9 @@ def inject_universal_updater(
         print("[-] CRITICAL: Failed to get package name. Aborting updater injection.")
         return False
 
-    main_activity_smali = _get_main_activity_smali_path(manifest_path)
+    main_activity_smali = _normalize_smali_path(target_activity_smali)
+    if not main_activity_smali:
+        main_activity_smali = _get_main_activity_smali_path(manifest_path)
     if not main_activity_smali:
         print("[-] CRITICAL: Could not detect Main Activity automatically.")
         return False
