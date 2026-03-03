@@ -1,5 +1,6 @@
 import os
 import re
+import sys
 import glob
 
 def patch_file(file_path, replacements):
@@ -16,20 +17,24 @@ def patch_file(file_path, replacements):
             with open(file_path, 'w', encoding='utf-8') as f:
                 f.write(content)
             print(f"[+] Successfully patched {file_path}")
-            return True
-        else:
-            print(f"[i] No changes made to {file_path} (maybe already patched or pattern didn't match?)")
-            return False
     except Exception as e:
         print(f"[-] Error processing {file_path}: {e}")
-        return False
 
-
-def patch(decompiled_dir: str) -> bool:
-    print(f"[*] Searching for smali files in {decompiled_dir}...")
+def patch(target_dir: str) -> bool:
+    print(f"[*] Searching for files to patch in {target_dir}...")
 
     # Rules mapping file paths (or parts of file paths) to a list of (regex_pattern, replacement)
     rules = [
+        # XML resource fixes for compilation errors (AAPT2 strict checking on '0x0' flags)
+        (
+            "**/res/layout/*.xml",
+            [
+                (r'android:layout_gravity="0x0"', ""),
+                (r'app:layout_gravity="0x0"', ""),
+                (r'android:gravity="0x0"', ""),
+                (r'app:gravity="0x0"', "")
+            ]
+        ),
         (
             "**/androidx/browser/customtabs/TrustedWebUtils.smali",
             [
@@ -164,20 +169,16 @@ def patch(decompiled_dir: str) -> bool:
         )
     ]
 
-    # Perform search and replace
-    any_patched = False
     for pattern, replacements in rules:
-        # Use glob to find matching files recursively
-        search_pattern = os.path.join(decompiled_dir, pattern)
+        # Use glob to find matching files
+        search_pattern = os.path.join(target_dir, pattern)
         matched_files = glob.glob(search_pattern, recursive=True)
         
-        if not matched_files:
-            print(f"[!] Warning: Could not find any files matching {pattern} in {decompiled_dir}")
-            
         for file_path in matched_files:
-            if patch_file(file_path, replacements):
-                any_patched = True
-
-    # Returning True allows the CI pipeline to proceed. 
-    # Change to 'return any_patched' if you want the build to fail if no patches could be applied.
+            patch_file(file_path, replacements)
+            
     return True
+
+if __name__ == "__main__":
+    target = sys.argv[1] if len(sys.argv) > 1 else "."
+    patch(target)
