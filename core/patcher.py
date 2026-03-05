@@ -94,10 +94,7 @@ def run_patch(app_id: str, decompiled_dir: str) -> bool:
             print(f"[-] [{app_id}] Clone stage failed.")
             return False
 
-    version_suffix = config.get("version_name_suffix")
-    if version_suffix:
-        print(f"[*] [{app_id}] Applying version suffix '{version_suffix}'...")
-        apply_version_suffix(decompiled_dir, version_suffix)
+    apply_hotfix_if_needed(decompiled_dir, config)
     
     inject_updater = bool(config.get("inject_updater", True))
     if inject_updater:
