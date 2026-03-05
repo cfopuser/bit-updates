@@ -4,6 +4,7 @@ Generic patch runner — dynamically loads an app's patch.py module.
 
 import importlib.util
 import os
+import re
 
 from core.cloner import run_clone
 from core.universal_updater import inject_universal_updater
