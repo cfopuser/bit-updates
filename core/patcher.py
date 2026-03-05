@@ -4,37 +4,12 @@ Generic patch runner — dynamically loads an app's patch.py module.
 
 import importlib.util
 import os
-import re
+
 
 from core.cloner import run_clone
 from core.universal_updater import inject_universal_updater
 from core.utils import load_app_config
-
-
-def apply_hotfix_if_needed(decompiled_dir: str, config: dict):
-    hotfixes = config.get("hotfixes", {})
-    if not hotfixes:
-        return
-
-    apktool_yml_path = os.path.join(decompiled_dir, "apktool.yml")
-    if not os.path.exists(apktool_yml_path):
-        return
-
-    with open(apktool_yml_path, "r", encoding="utf-8") as f:
-        content = f.read()
-
-    pattern = re.compile(r"(versionName:\s*)(['\"]?)(.*?)\2")
-    match = pattern.search(content)
-    if match:
-        base_ver = match.group(3)
-        suffix = hotfixes.get(base_ver)
-        
-        # אם יש סיומת לגרסה הזו והיא עדיין לא הוספה
-        if suffix and not base_ver.endswith(suffix):
-            new_content = pattern.sub(rf"\g<1>\g<2>{base_ver}{suffix}\g<2>", content, count=1)
-            with open(apktool_yml_path, "w", encoding="utf-8") as f:
-                f.write(new_content)
-            print(f"    [+] [Patcher] Applied hotfix suffix: {base_ver} -> {base_ver}{suffix}")
+from core.hotfix import apply_hotfix_if_needed
             
 def run_patch(app_id: str, decompiled_dir: str) -> bool:
     """
