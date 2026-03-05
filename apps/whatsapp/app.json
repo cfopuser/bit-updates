@@ -13,6 +13,9 @@
   "version_file": "apps/whatsapp/version.txt",
   "status_file": "apps/whatsapp/status.json",
   "updater_target_smali": "com/whatsapp/home/ui/HomeActivity.smali",
+  "hotfixes": {
+    "2.26.9.4": ".1"
+  },
   "clone_config": {
     "old_pkg": "com.whatsapp",
     "new_pkg": "com.whatsapp.kosher",
