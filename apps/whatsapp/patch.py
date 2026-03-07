@@ -2,7 +2,7 @@ import os
 import re
 
 def patch(decompiled_dir: str) -> bool:
-    print(f"[*] Starting WhatsApp Kosher patch (Final Solution: Shell Replacement)...")
+    print(f"[*] Starting WhatsApp Kosher patch (Debug Mode: Dumping Class)...")
     
     # 1. חסימות תוכן רגילות
     photos = _patch_profile_photos(decompiled_dir)
@@ -13,11 +13,11 @@ def patch(decompiled_dir: str) -> bool:
     spi = _patch_secure_pending_intent(decompiled_dir)
     browser = _patch_force_external_browser(decompiled_dir)
     
-    # 3. טיפול בסטטוסים
+    # 3. טיפול בסטטוסים 
     status_nuke = _patch_nuke_status_activity(decompiled_dir)
     status_redirect = _patch_redirect_status_intents(decompiled_dir)
     
-    # 4. חסימת טאב הגיפים
+    # 4. חסימת טאב הגיפים - מצב דיבאג (הדפסת הקובץ למסך)
     gifs_tab = _patch_gifs_tab(decompiled_dir)
 
     results = [photos, newsletter, tabs, spi, browser, status_nuke, status_redirect, gifs_tab]
@@ -61,6 +61,7 @@ def _patch_profile_photos(root_dir):
         else:
             print("    [-] Photo loader signatures not found.")
             return False
+
     except Exception as e:
         print(f"    [-] Error: {e}")
         return False
@@ -97,6 +98,7 @@ def _patch_newsletter_launcher(root_dir):
         else:
             print("    [-] Newsletter launcher signatures not found.")
             return False
+
     except Exception as e:
         print(f"    [-] Error: {e}")
         return False
@@ -139,6 +141,7 @@ def _patch_home_tabs(root_dir):
         else:
             print("    [-] Home Tabs: Target method found, but regex failed.")
             return False
+
     except Exception as e:
         print(f"    [-] Error: {e}")
         return False
@@ -167,6 +170,7 @@ def _patch_secure_pending_intent(root_dir):
         else:
             print("    [-] Check not found or already bypassed.")
             return True
+
     except Exception as e:
         print(f"    [-] Error: {e}")
         return False
@@ -184,15 +188,22 @@ def _patch_force_external_browser(root_dir):
         return False
 
     try:
-        with open(target_file, 'r', encoding='utf-8') as f: content = f.read()
+        with open(target_file, 'r', encoding='utf-8') as f:
+            content = f.read()
 
         super_class_match = re.search(r"^\.super\s+(L[^;]+;)", content, re.MULTILINE)
-        if not super_class_match: return False
+        if not super_class_match:
+            return False
         parent_class = super_class_match.group(1)
 
-        method_pattern = re.compile(r"(\.method public onCreate\(Landroid\/os\/Bundle;\)V)(.*?)(\.end method)", re.DOTALL)
+        method_pattern = re.compile(
+            r"(\.method public onCreate\(Landroid\/os\/Bundle;\)V)(.*?)(\.end method)",
+            re.DOTALL
+        )
+        
         match = method_pattern.search(content)
-        if not match: return False
+        if not match:
+            return False
 
         original_body = match.group(2)
         new_body = f"""
@@ -229,7 +240,8 @@ def _patch_force_external_browser(root_dir):
     return-void
 """
         new_content = content.replace(original_body, new_body)
-        with open(target_file, 'w', encoding='utf-8') as f: f.write(new_content)
+        with open(target_file, 'w', encoding='utf-8') as f:
+            f.write(new_content)
         print(f"    [+] Browser hijacked successfully!")
         return True
     except Exception as e:
@@ -237,7 +249,7 @@ def _patch_force_external_browser(root_dir):
         return False
 
 # ---------------------------------------------------------
-# 6. הריגת נגן הסטטוסים
+# 6. הריגת נגן הסטטוסים (Shell Replacement)
 # ---------------------------------------------------------
 def _patch_nuke_status_activity(root_dir):
     target_filename = "StatusPlaybackActivity.smali"
@@ -249,9 +261,13 @@ def _patch_nuke_status_activity(root_dir):
         return False
 
     try:
-        with open(target_file, 'r', encoding='utf-8') as f: content = f.read()
+        with open(target_file, 'r', encoding='utf-8') as f:
+            content = f.read()
+
         super_match = re.search(r"^\.super\s+(L[^;]+;)", content, re.MULTILINE)
-        if not super_match: return False
+        if not super_match:
+            print("    [-] Could not determine parent class from source.")
+            return False
         
         parent_class = super_match.group(1)
         print(f"    [i] Detected parent class: {parent_class}")
@@ -274,15 +290,18 @@ def _patch_nuke_status_activity(root_dir):
     return-void
 .end method
 """
-        with open(target_file, 'w', encoding='utf-8') as f: f.write(new_content)
+        with open(target_file, 'w', encoding='utf-8') as f:
+            f.write(new_content)
+            
         print(f"    [+] StatusPlaybackActivity replaced with zombie shell.")
         return True
+
     except Exception as e:
         print(f"    [-] Error nuking status activity: {e}")
         return False
 
 # ---------------------------------------------------------
-# 7. הטיית הפניות לסטטוס
+# 7. הטיית הפניות לסטטוס (Redirection)
 # ---------------------------------------------------------
 def _patch_redirect_status_intents(root_dir):
     target_status_class = "Lcom/whatsapp/status/playback/StatusPlaybackActivity;"
@@ -308,6 +327,7 @@ def _patch_redirect_status_intents(root_dir):
                 path = os.path.join(root, file)
                 try:
                     with open(path, 'r', encoding='utf-8') as f: content = f.read()
+                    
                     if target_status_class in content:
                         new_content = content.replace(target_status_class, final_redirect)
                         with open(path, 'w', encoding='utf-8') as f: f.write(new_content)
@@ -318,11 +338,11 @@ def _patch_redirect_status_intents(root_dir):
     return True
 
 # ---------------------------------------------------------
-# 8. הסרת טאב הגיפים - גרסה רובוסטית ואגרסיבית
+# 8. הדפסת מסך לדיבאג של הטאבים
 # ---------------------------------------------------------
 def _patch_gifs_tab(root_dir):
     anchor = "ExpressionsKeyboardOpener = "
-    print(f"\n[8] Scanning for GIF Tab removal ({anchor})...")
+    print(f"\n[8] Dumping GIF Tab Handler for DEBUG ({anchor})...")
     
     target_file = _find_file_by_string(root_dir, anchor)
     if not target_file:
@@ -332,84 +352,20 @@ def _patch_gifs_tab(root_dir):
     try:
         with open(target_file, 'r', encoding='utf-8') as f:
             content = f.read()
-        original_content = content
-
-        # תבנית שמחפשת את הפקודה שמוסיפה אובייקט לרשימה (v3) מיד לפני הבדיקה של this$0.A00
-        # זה תמיד אובייקט ה-GIF (שנמצא לפני הסטיקרים).
-        gif_class_pattern = re.compile(
-            r"sget-object [vp]\d+,\s*(L[^;]+;)->A00:L[^;]+;\s+"
-            r"(?:\.line \d+\s+)*"
-            r"invoke-(?:virtual|interface) \{[vp]\d+,\s*[vp]\d+\},\s*Ljava/util/[a-zA-Z]+;->add\(Ljava/lang/Object;\)Z\s+"
-            r"(?:\.line \d+\s+)*"
-            r"invoke-(?:static|virtual) \{[vp]\d+\},\s*L[^;]+;->\w+\(.*\)Z"
-        )
-        
-        match = gif_class_pattern.search(content)
-        
-        # --- בלוק Debug מתקדם ---
-        if not match:
-            print("    [-] Failed to find dynamic GIF class. Printing debug log:")
-            start = content.find("invokeSuspend(Ljava/lang/Object;)Ljava/lang/Object;")
-            if start != -1:
-                end = content.find(".end method", start)
-                method_body = content[start:end]
-                print("    [DEBUG] Elements found in array generation:")
-                lines = method_body.split('\n')
-                for idx, line in enumerate(lines):
-                    if "sget-object" in line and "->A00" in line:
-                        print(f"      > {line.strip()}")
-            return False
             
-        gif_class = match.group(1)
-        print(f"    [i] Identified GIF class: {gif_class}")
-
-        # טיפול ב-goto (Opener 11)
-        match_goto = re.search(
-            rf"sget-object ([vp]\d+),\s*{re.escape(gif_class)};->A00:{re.escape(gif_class)};\s+(?:\.line \d+\s+)*goto (:goto_\w+)", 
-            content
-        )
+        print("\n" + "="*80)
+        print(f"--- DUMP OF TARGET FILE: {target_file} ---")
+        print("="*80)
+        print(content)
+        print("="*80)
+        print("--- END OF DUMP ---")
+        print("="*80 + "\n")
         
-        if match_goto:
-            reg_v = match_goto.group(1)
-            goto_lbl = match_goto.group(2)
-            
-            lbl_pattern = re.compile(
-                rf"^\s*{goto_lbl}\s+"
-                rf"(?:\.line \d+\s+)*"
-                rf"invoke-(?:virtual|interface) \{{[vp]\d+,\s*{reg_v}\}},\s*Ljava/util/[a-zA-Z]+;->add\(Ljava/lang/Object;\)Z", 
-                re.MULTILINE
-            )
-            lbl_match = lbl_pattern.search(content)
-            
-            if lbl_match:
-                content = content[:lbl_match.end()] + "\n    :goto_skip_gif_11" + content[lbl_match.end():]
-                content = re.sub(
-                    rf"sget-object {reg_v},\s*{re.escape(gif_class)};->A00:{re.escape(gif_class)};(\s*\.line \d+\s*)*goto {goto_lbl}",
-                    r"goto :goto_skip_gif_11",
-                    content
-                )
-                print(f"    [+] Opener 11 patched (Jump bypassed).")
-
-        # טיפול בהוספה רגילה בשאר הבלוקים
-        add_pattern = re.compile(
-            rf"\s*sget-object ([vp]\d+),\s*{re.escape(gif_class)};->A00:{re.escape(gif_class)};"
-            rf"(?:\s*\.line \d+)*"
-            rf"\s*invoke-(?:virtual|interface) \{{[vp]\d+,\s*\1\}},\s*Ljava/util/[a-zA-Z]+;->add\(Ljava/lang/Object;\)Z"
-        )
-        content, subs_count = add_pattern.subn("", content)
-        print(f"    [+] Removed {subs_count} GIF tab additions from normal openers.")
-
-        if content != original_content:
-            with open(target_file, 'w', encoding='utf-8') as f:
-                f.write(content)
-            print("    [SUCCESS] GIF Tab completely removed.")
-            return True
-        else:
-            print("    [-] No replacements made. Might be already patched.")
-            return False
+        # אנחנו מחזירים False בכוונה כדי שהסקריפט יעצור ונוכל לקרוא את המסך בנחת
+        return False
 
     except Exception as e:
-        print(f"    [-] Error patching GIF tab: {e}")
+        print(f"    [-] Error dumping GIF file: {e}")
         return False
 
 
