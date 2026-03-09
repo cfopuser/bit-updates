@@ -10,6 +10,9 @@
   "repo": "MetrolistGroup/Metrolist",
   "maintainer": "lilor159357",
   "skip_mitm": true,
+  "hotfixes": {
+    "2.26.10.2": ".1"
+  },
   "version_file": "apps/metrolist/version.txt",
   "status_file": "apps/metrolist/status.json"
 }
