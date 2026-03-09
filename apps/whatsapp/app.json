@@ -14,7 +14,7 @@
   "status_file": "apps/whatsapp/status.json",
   "updater_target_smali": "com/whatsapp/home/ui/HomeActivity.smali",
   "hotfixes": {
-    "13.3.0": ".1"
+    "2.26.10.2": ".1"
   },
   "clone_config": {
     "old_pkg": "com.whatsapp",
