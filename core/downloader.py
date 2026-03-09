@@ -83,7 +83,7 @@ def _is_xapk(path: str) -> bool:
 
 
 def _convert_xapk_to_apk(xapk_path: str) -> str:
-    converter_script = os.path.join("core", "xapktoapk.py")
+    converter_script = os.path.join("core", "apkeditor_merger.py")
     command = [sys.executable, converter_script, xapk_path]
 
     try:
