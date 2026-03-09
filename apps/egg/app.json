@@ -4,8 +4,11 @@
   "name": "EGG",
   "name_he": "אגד",
   "package_name": "com.egged.egg",
-  "description": "אפליקציית אגד (EGG) - ערוכה להתקנה חלקה.",
+  "description": "Public transportation app – patched for sideloading.",
+  "description_he": "אפליקציית תחבורה ציבורית  - ערוכה להתקנה מקובץ.",
   "source": "apkpure_mobile",
+  "maintainer": "lilor159357",
+  "inject_updater": true,
   "version_file": "apps/egg/version.txt",
   "status_file": "apps/egg/status.json"
 }
