@@ -7,7 +7,7 @@
   "description_he": "וואטסאפ מסונן: חסימת תמונות פרופיל, ערוצים וסטטוסים. מומלץ לשימוש כמכשיר מקושר ולא כמכשיר ראשי.",
   "icon_url": "https://cdn-icons-png.flaticon.com/512/3992/3992601.png",
   "skip_mitm": true,
-  "source": "aptoide",
+  "source": "apkpure_mobile",
   "maintainer": "lilor159357",
   "inject_updater": true,
   "version_file": "apps/whatsapp/version.txt",
