@@ -441,11 +441,9 @@ def _patch_gifs_tab(root_dir):
 # 9. מעקף חכם לקריסת MimeType של מערכת ההפעלה 
 # --------------------------------------------------------- 
 def _patch_mime_type_crash(root_dir): 
-    # העוגן הייחודי שמצאנו בחיפוש ידני
     anchor_string = "SecureFileBuilder" 
     print(f"\n[9] Scanning for SecureFile OS Crash Trigger ({anchor_string})...") 
  
-    # איתור הקובץ המדויק (1Mf.smali)
     target_file = _find_file_by_string(root_dir, anchor_string) 
     if not target_file: 
         print(f"    [-] Target file containing '{anchor_string}' not found. Skipping.") 
@@ -454,14 +452,14 @@ def _patch_mime_type_crash(root_dir):
     try: 
         with open(target_file, 'r', encoding='utf-8') as f: content = f.read() 
  
-        # Regex חסין שינויים שמוצא את בלוק הקריאה ל-MimeTypeMap
-        # הוא לוכד באופן דינמי את הרגיסטר (v0, v1 וכו') שאליו נשמרת התוצאה
-        regex_pattern = r"invoke-static\s*\{\},\s*Landroid/webkit/MimeTypeMap;->getSingleton\(\)Landroid/webkit/MimeTypeMap;\s*move-result-object\s+[vp]\d+\s*invoke-virtual\s*\{[vp]\d+,\s*[vp]\d+\},\s*Landroid/webkit/MimeTypeMap;->getMimeTypeFromExtension\(Ljava/lang/String;\)Ljava/lang/String;\s*move-result-object\s+([vp]\d+)" 
+        # Regex מעודכן: מתעלם מפקודות .line באמצעות .*? ו- re.DOTALL
+        # הוא עוטף את כל הבלוק (קבוצה 1) ולוכד את הרגיסטר (קבוצה 2)
+        regex_pattern = r"(invoke-virtual\s*\{[vp]\d+,\s*[vp]\d+\},\s*Landroid/webkit/MimeTypeMap;->getMimeTypeFromExtension\(Ljava/lang/String;\)Ljava/lang/String;.*?move-result-object\s+([vp]\d+))" 
  
-        if re.search(regex_pattern, content): 
-            # הזרקת null (0x0) לרגיסטר שלכדנו (\1)
-            safe_replacement = r"    const/4 \1, 0x0 # Bypassed OS Crash" 
-            new_content = re.sub(regex_pattern, safe_replacement, content) 
+        if re.search(regex_pattern, content, re.DOTALL): 
+            # מחיקת קריאת המערכת והזרקת 0x0 לרגיסטר שלכדנו מקבוצה 2
+            safe_replacement = r"const/4 \2, 0x0 # Bypassed OS Crash (Kosher Patch)" 
+            new_content = re.sub(regex_pattern, safe_replacement, content, flags=re.DOTALL) 
              
             with open(target_file, 'w', encoding='utf-8') as f: f.write(new_content) 
             print(f"    [+] Successfully neutralized OS MimeType query in {os.path.basename(target_file)}") 
