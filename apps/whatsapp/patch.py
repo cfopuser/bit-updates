@@ -477,31 +477,93 @@ def _patch_mime_type_crash(root_dir):
         return False
 
 def extract_original_signature(apk_path: str) -> str:
-    """מחלץ את החתימה המקורית של וואטסאפ מתוך ה-APK לפני הפירוק"""
-    print("    [*] Extracting original WhatsApp signature...")
+    """מחלץ את החתימה המקורית של וואטסאפ מה-APK"""
     with zipfile.ZipFile(apk_path, 'r') as zf:
-        # חפש את קובץ האישור בתיקיית META-INF
-        cert_files =[f for f in zf.namelist() if f.startswith('META-INF/') and (f.endswith('.DSA') or f.endswith('.RSA'))]
+        cert_files = [f for f in zf.namelist() if f.startswith('META-INF/') and (f.endswith('.DSA') or f.endswith('.RSA'))]
         if not cert_files:
-            raise Exception("Could not find .DSA or .RSA certificate in original APK")
+            raise Exception("Could not find certificate in original APK")
         cert_data = zf.read(cert_files[0])
-
-    # המרת האישור למחרוזת HEX (בדיוק כמו ש-Schwartzblat עושה)
+    
     der_cert = pkcs7.load_der_pkcs7_certificates(cert_data)[0]
     bytes_signature = der_cert.public_bytes(serialization.Encoding.DER)
-    signature_hex = bytes_signature.hex()
+    return bytes_signature.hex()
+
+# --- מודולי הפאצ' ---
+
+def _patch_kotlin_null_check(decompiled_dir: str) -> bool:
+    """מוצא ומנטרל את בדיקת ה-null של קוטלין שגורמת לקריסה."""
+    print("\n[*] Applying Kotlin Null-Check Bypass...")
+    anchor_string = '"INVOKE_RETURN must not be null"'
     
-    # נוודא שהמחרוזת זוגית
-    formatted_signature = "".join([hex(b).split("x")[-1].zfill(2) for b in bytes_signature])
-    return formatted_signature
+    for root, _, files in os.walk(decompiled_dir):
+        for file in files:
+            if not file.endswith(".smali"):
+                continue
+            
+            file_path = os.path.join(root, file)
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+
+                if anchor_string not in content:
+                    continue
+                    
+                # מצאנו את הקובץ הנכון (לדוגמה, LX/00C.smali)
+                print(f"    [+] Found Kotlin Intrinsics class: {os.path.relpath(file_path, decompiled_dir)}")
+
+                # דפוס רג'קס שמזהה את כל הפונקציה שמכילה את המחרוזת
+                method_pattern = re.compile(
+                    r"(\.method public static \w+\(Ljava/lang/Object;\)V[\s\S]*?" + re.escape(anchor_string) + r"[\s\S]*?\.end method)"
+                )
+                
+                match = method_pattern.search(content)
+                if not match:
+                    print("    [-] Found anchor string but could not isolate method block.")
+                    return False
+                
+                method_block = match.group(1)
+                
+                # חילוץ חתימת המתודה המקורית
+                signature_line = method_block.split('\n', 1)[0]
+                
+                # בניית הפונקציה החדשה והריקה
+                new_method = f"""{signature_line}
+    .registers 1
+    # Bypassed to prevent Firebase/Kotlin crashes
+    return-void
+.end method"""
+                
+                # החלפה בקובץ
+                new_content = content.replace(method_block, new_method)
+                with open(file_path, 'w', encoding='utf-8') as f:
+                    f.write(new_content)
+
+                print("    [+] Successfully neutralized INVOKE_RETURN null check.")
+                return True # הצלחנו, אין צורך להמשיך לסרוק קבצים
+
+            except Exception:
+                continue # דלג על קבצים שאי אפשר לקרוא
+
+    print("    [-] CRITICAL: Could not find the Kotlin null-check method.")
+    return False
 
 def _patch_signature_bypass(decompiled_dir: str) -> bool:
-    print("\n[*] Injecting Static Signature Bypass...")
+    print("\n[*] Injecting Advanced Static Signature Bypass...")
     
-    # 1. חילוץ החתימה מה-APK המקורי
+    # 1. חילוץ שם החבילה הנוכחי מהמניפסט
+    manifest_path = os.path.join(decompiled_dir, "AndroidManifest.xml")
+    try:
+        tree = ET.parse(manifest_path)
+        current_package_name = tree.getroot().get('package')
+        print(f"    [i] Target package name resolved to: {current_package_name}")
+    except Exception as e:
+        print(f"    [-] Could not read manifest: {e}")
+        return False
+
+    # 2. חילוץ החתימה מה-APK המקורי
     original_apk = "latest.apk"
     if not os.path.exists(original_apk):
-        print("    [-] latest.apk not found. Cannot extract signature.")
+        print(f"    [-] {original_apk} not found. Cannot extract signature.")
         return False
         
     try:
@@ -511,41 +573,36 @@ def _patch_signature_bypass(decompiled_dir: str) -> bool:
         print(f"    [-] Failed to extract signature: {e}")
         return False
 
-    # 2. סריקה והחלפה של כל הקריאות ל-getPackageInfo בכל הקוד של וואטסאפ
-    # (אנחנו עושים את זה *לפני* יצירת הקובץ שלנו כדי לא ליצור לולאה אינסופית!)
+    # 3. סריקה והחלפת כל הקריאות
     print("    [*] Redirecting getPackageInfo calls to SigBypass...")
-    
-    pattern = re.compile(
-        r"invoke-virtual\s*\{([vp]\d+),\s*([vp]\d+),\s*([vp]\d+)\},\s*Landroid/content/pm/PackageManager;->getPackageInfo\(Ljava/lang/String;I\)Landroid/content/pm/PackageInfo;"
-    )
-    
+    pattern = re.compile(r"invoke-virtual (\{[^}]+\}), Landroid/content/pm/PackageManager;->getPackageInfo\(Ljava/lang/String;I\)Landroid/content/pm/PackageInfo;")
     patched_count = 0
+    
     for root_path, _, files in os.walk(decompiled_dir):
         for file in files:
+            if file.endswith("SigBypass.smali"): continue # חשוב: מדלגים על הקובץ של עצמנו
             if file.endswith(".smali"):
                 full_path = os.path.join(root_path, file)
                 try:
-                    with open(full_path, 'r', encoding='utf-8') as f:
+                    with open(full_path, 'r+', encoding='utf-8') as f:
                         content = f.read()
-                    
-                    if "Landroid/content/pm/PackageManager;->getPackageInfo(Ljava/lang/String;I)" in content:
                         new_content, subs = pattern.subn(
-                            r"invoke-static {\1, \2, \3}, Lcom/whatsapp/kosher/SigBypass;->getPackageInfo(Landroid/content/pm/PackageManager;Ljava/lang/String;I)Landroid/content/pm/PackageInfo;",
+                            r"invoke-static \1, Lcom/whatsapp/kosher/SigBypass;->getPackageInfo(Landroid/content/pm/PackageManager;Ljava/lang/String;I)Landroid/content/pm/PackageInfo;",
                             content
                         )
                         if subs > 0:
-                            with open(full_path, 'w', encoding='utf-8') as f:
-                                f.write(new_content)
+                            f.seek(0)
+                            f.write(new_content)
+                            f.truncate()
                             patched_count += subs
                 except Exception:
                     continue
                     
-    print(f"    [+] Successfully redirected {patched_count} calls to signature bypass.")
+    print(f"    [+] Successfully redirected {patched_count} calls.")
 
-    # 3. רק עכשיו ניצור את מחלקת ה-Smali שלנו
+    # 4. יצירת מחלקת ה-Smali שלנו
     smali_dir = os.path.join(decompiled_dir, "smali_classes2", "com", "whatsapp", "kosher")
     os.makedirs(smali_dir, exist_ok=True)
-    
     bypass_smali_path = os.path.join(smali_dir, "SigBypass.smali")
     
     smali_code = f"""
@@ -555,50 +612,78 @@ def _patch_signature_bypass(decompiled_dir: str) -> bool:
 .method public static getPackageInfo(Landroid/content/pm/PackageManager;Ljava/lang/String;I)Landroid/content/pm/PackageInfo;
     .registers 7
     .annotation system Ldalvik/annotation/Throws;
-        value = {{
-            Landroid/content/pm/PackageManager$NameNotFoundException;
-        }}
+        value = {{ Landroid/content/pm/PackageManager$NameNotFoundException; }}
     .end annotation
 
-    # קריאה לפונקציה המקורית
+    const-string v0, "com.whatsapp"
+    invoke-virtual {{v0, p1}}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
+    move-result v0
+    if-eqz v0, :cond_0
+    const-string p1, "{current_package_name}"
+    :cond_0
     invoke-virtual {{p0, p1, p2}}, Landroid/content/pm/PackageManager;->getPackageInfo(Ljava/lang/String;I)Landroid/content/pm/PackageInfo;
     move-result-object v0
-
-    # אם חזר null, נחזיר null
-    if-nez v0, :not_null
+    if-nez v0, :cond_1
     return-object v0
-
-    :not_null
-    # נוודא שמדובר בוואטסאפ
-    const-string v1, "com.whatsapp.kosher"
+    :cond_1
+    const-string v1, "{current_package_name}"
     invoke-virtual {{v1, p1}}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
     move-result v1
-    if-nez v1, :is_whatsapp
-    return-object v0
-
-    :is_whatsapp
-    # יצירת אובייקט חתימה מזויף עם החתימה המקורית
+    if-eqz v1, :cond_2
     new-instance v1, Landroid/content/pm/Signature;
     const-string v2, "{signature_hex}"
     invoke-direct {{v1, v2}}, Landroid/content/pm/Signature;-><init>(Ljava/lang/String;)V
-
-    # הזרקת החתימה
     const/4 v2, 0x1
     new-array v2, v2,[Landroid/content/pm/Signature;
     const/4 v3, 0x0
     aput-object v1, v2, v3
     iput-object v2, v0, Landroid/content/pm/PackageInfo;->signatures:[Landroid/content/pm/Signature;
-
-    # איפוס signingInfo (אנדרואיד 9+)
-    const/4 v1, 0x0
-    iput-object v1, v0, Landroid/content/pm/PackageInfo;->signingInfo:Landroid/content/pm/SigningInfo;
-
+    invoke-static {{v0, v2}}, Lcom/whatsapp/kosher/SigBypass;->fixSigningInfo(Landroid/content/pm/PackageInfo;[Landroid/content/pm/Signature;)V
+    :cond_2
     return-object v0
+.end method
+
+.method private static fixSigningInfo(Landroid/content/pm/PackageInfo;[Landroid/content/pm/Signature;)V
+    .registers 6
+    sget v0, Landroid/os/Build$VERSION;->SDK_INT:I
+    const/16 v1, 0x1c
+    if-ge v0, v1, :cond_0
+    return-void
+    :cond_0
+    .catch Ljava/lang/Exception; {{:try_start_0 .. :try_end_0}} :catch_0
+    :try_start_0
+    iget-object v0, p0, Landroid/content/pm/PackageInfo;->signingInfo:Landroid/content/pm/SigningInfo;
+    if-nez v0, :cond_1
+    return-void
+    :cond_1
+    invoke-virtual {{v0}}, Ljava/lang/Object;->getClass()Ljava/lang/Class;
+    move-result-object v1
+    const-string v2, "mSigningDetails"
+    invoke-virtual {{v1, v2}}, Ljava/lang/Class;->getDeclaredField(Ljava/lang/String;)Ljava/lang/reflect/Field;
+    move-result-object v1
+    const/4 v2, 0x1
+    invoke-virtual {{v1, v2}}, Ljava/lang/reflect/Field;->setAccessible(Z)V
+    invoke-virtual {{v1, v0}}, Ljava/lang/reflect/Field;->get(Ljava/lang/Object;)Ljava/lang/Object;
+    move-result-object v0
+    if-nez v0, :cond_2
+    return-void
+    :cond_2
+    invoke-virtual {{v0}}, Ljava/lang/Object;->getClass()Ljava/lang/Class;
+    move-result-object v1
+    const-string v3, "signatures"
+    invoke-virtual {{v1, v3}}, Ljava/lang/Class;->getDeclaredField(Ljava/lang/String;)Ljava/lang/reflect/Field;
+    move-result-object v1
+    invoke-virtual {{v1, v2}}, Ljava/lang/reflect/Field;->setAccessible(Z)V
+    invoke-virtual {{v1, v0, p1}}, Ljava/lang/reflect/Field;->set(Ljava/lang/Object;Ljava/lang/Object;)V
+    :try_end_0
+    .catch Ljava/lang/Exception; {{:try_start_0 .. :try_end_0}} :catch_0
+    :catch_0
+    return-void
 .end method
 """
     with open(bypass_smali_path, 'w', encoding='utf-8') as f:
-        f.write(smali_code.strip())
-    print("    [+] Injected SigBypass.smali")
+        f.write(smali_code)
+    print("    [+] Injected Advanced SigBypass.smali")
 
     return patched_count > 0
 
