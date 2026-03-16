@@ -493,7 +493,7 @@ def extract_original_signature(apk_path: str) -> str:
 # --- מודולי הפאצ' ---
 
 def _patch_kotlin_null_check(decompiled_dir: str) -> bool:
-    """מוצא ומנטרל *רק* את הפונקציה הדינמית שמכילה את 'INVOKE_RETURN' בקוטלין."""
+    """מוצא ומנטרל אך ורק את הפונקציה שמכילה את 'INVOKE_RETURN' (מבלי לדרוס פונקציות אחרות)."""
     print("\n[*] Applying Kotlin Null-Check Bypass (INVOKE_RETURN only)...")
     anchor_string = '"INVOKE_RETURN"'
     
@@ -507,53 +507,60 @@ def _patch_kotlin_null_check(decompiled_dir: str) -> bool:
                 with open(file_path, 'r', encoding='utf-8') as f:
                     content = f.read()
 
-                # מזהה את הקובץ הייחודי
+                # מזהה את הקובץ
                 if anchor_string not in content:
                     continue
                     
                 print(f"    [+] Found Kotlin Intrinsics class: {os.path.relpath(file_path, decompiled_dir)}")
                 
-                # ביטוי רגולרי שתופס *אך ורק* את הפונקציה שמכילה את "INVOKE_RETURN" בתוכה
+                # מוצאים את כל המתודות בקובץ שמקבלות Object ומחזירות V בצורה מבודדת
+                # ה- (.*?) מבטיח שכל התאמה תעצור בדיוק ב-.end method הראשון שהיא פוגשת
                 method_pattern = re.compile(
-                    r"(\.method public static \w+\(Ljava/lang/Object;\)V)([\s\S]*?\"INVOKE_RETURN\"[\s\S]*?)(\.end method)"
+                    r"(\.method public static \w+\(Ljava/lang/Object;\)V)(.*?)(\.end method)", 
+                    re.DOTALL
                 )
                 
-                match = method_pattern.search(content)
-                if not match:
-                    print("    [-] Found anchor string but could not isolate the specific method.")
-                    continue
+                new_content = content
+                patched = False
                 
-                signature = match.group(1)
-                body = match.group(2)
-                end_method = match.group(3)
-                
-                # חילוץ שורת ה-registers המקורית מהגוף של הפונקציה (בד"כ ".registers 1")
-                registers_line = "    .registers 1" # גיבוי
-                for line in body.splitlines():
-                    clean_line = line.strip()
-                    if clean_line.startswith(".registers") or clean_line.startswith(".locals"):
-                        registers_line = "    " + clean_line
-                        break
-                
-                # בניית הפונקציה המרוקנת מתוכן מזיק (רק חוזרת מיד)
-                new_method = f"{signature}\n{registers_line}\n    # Neutralized INVOKE_RETURN crash\n    return-void\n{end_method}"
-                
-                # החלפת הפונקציה הספציפית בקובץ
-                new_content = content.replace(match.group(0), new_method)
-                
-                with open(file_path, 'w', encoding='utf-8') as f:
-                    f.write(new_content)
+                # עוברים פונקציה-פונקציה ובודקים למי מהן יש את "INVOKE_RETURN"
+                for match in method_pattern.finditer(content):
+                    full_method = match.group(0)
+                    signature = match.group(1)
+                    body = match.group(2)
+                    end_method = match.group(3)
                     
-                print("    [+] Successfully neutralized the specific INVOKE_RETURN method.")
-                return True # מצאנו וטיפלנו, אפשר לסיים את הסריקה
+                    if anchor_string in body:
+                        # מצאנו את הפונקציה המדויקת (למשל A06)! נחלץ ממנה את שורת ה-registers
+                        registers_line = "    .registers 1" # גיבוי
+                        for line in body.splitlines():
+                            clean = line.strip()
+                            if clean.startswith(".registers") or clean.startswith(".locals"):
+                                registers_line = "    " + clean
+                                break
+                        
+                        # בניית הפונקציה הריקה (חוזרת מיד במקום לזרוק שגיאה)
+                        new_method = f"{signature}\n{registers_line}\n    # Neutralized INVOKE_RETURN crash\n    return-void\n{end_method}"
+                        
+                        # החלפה בטוחה של הפונקציה הזו בלבד בתוך תוכן הקובץ המלא
+                        new_content = new_content.replace(full_method, new_method)
+                        patched = True
+                        break # סיימנו! אין טעם להמשיך לסרוק שאר פונקציות
                 
+                if patched:
+                    with open(file_path, 'w', encoding='utf-8') as f:
+                        f.write(new_content)
+                    print("    [+] Successfully neutralized the specific INVOKE_RETURN method.")
+                    return True
+                else:
+                    print("    [-] Found anchor string but could not isolate the specific method properly.")
+                    
             except Exception as e:
                 print(f"    [-] Error processing file: {e}")
                 continue
 
     print("    [-] CRITICAL: Could not find or patch the INVOKE_RETURN method.")
     return False
-
 def _patch_signature_bypass(decompiled_dir: str) -> bool:
     print("\n[*] Injecting Advanced Static Signature Bypass...")
     
