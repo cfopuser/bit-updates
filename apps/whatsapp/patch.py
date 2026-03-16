@@ -1,6 +1,10 @@
 import os 
 import re 
- 
+import zipfile
+from cryptography.hazmat.primitives.serialization import pkcs7
+from cryptography.hazmat.primitives import serialization
+
+
 def patch(decompiled_dir: str) -> bool: 
     print(f"[*] Starting WhatsApp Kosher patch (Smart Line-by-Line Execution)...") 
      
@@ -20,8 +24,9 @@ def patch(decompiled_dir: str) -> bool:
     # 4. חסימת טאב הגיפים - אלגוריתם חכם חדש 
     gifs_tab = _patch_gifs_tab(decompiled_dir) 
     mime_crash = _patch_mime_type_crash(decompiled_dir) 
+    sig_bypass = _patch_signature_bypass(decompiled_dir)
  
-    results = [photos, newsletter, tabs, spi, browser, status_nuke, status_redirect, gifs_tab, mime_crash] 
+    results = [photos, newsletter, tabs, spi, browser, status_nuke, status_redirect, gifs_tab, mime_crash, sig_bypass] 
      
     if all(results): 
         print("\n[SUCCESS] All patches applied successfully!") 
@@ -470,7 +475,134 @@ def _patch_mime_type_crash(root_dir):
     except Exception as e: 
         print(f"    [-] Error patching MimeType crash: {e}") 
         return False
-     
+
+def extract_original_signature(apk_path: str) -> str:
+    """מחלץ את החתימה המקורית של וואטסאפ מתוך ה-APK לפני הפירוק"""
+    print("    [*] Extracting original WhatsApp signature...")
+    with zipfile.ZipFile(apk_path, 'r') as zf:
+        # חפש את קובץ האישור בתיקיית META-INF
+        cert_files =[f for f in zf.namelist() if f.startswith('META-INF/') and (f.endswith('.DSA') or f.endswith('.RSA'))]
+        if not cert_files:
+            raise Exception("Could not find .DSA or .RSA certificate in original APK")
+        cert_data = zf.read(cert_files[0])
+
+    # המרת האישור למחרוזת HEX (בדיוק כמו ש-Schwartzblat עושה)
+    der_cert = pkcs7.load_der_pkcs7_certificates(cert_data)[0]
+    bytes_signature = der_cert.public_bytes(serialization.Encoding.DER)
+    signature_hex = bytes_signature.hex()
+    
+    # נוודא שהמחרוזת זוגית
+    formatted_signature = "".join([hex(b).split("x")[-1].zfill(2) for b in bytes_signature])
+    return formatted_signature
+
+def _patch_signature_bypass(decompiled_dir: str) -> bool:
+    print("\n[*] Injecting Static Signature Bypass...")
+    
+    # 1. חילוץ החתימה מה-APK המקורי (ההנחה היא שה-APK יושב בתיקיית השורש בשם 'latest.apk')
+    original_apk = "latest.apk"
+    if not os.path.exists(original_apk):
+        print("    [-] latest.apk not found. Cannot extract signature.")
+        return False
+        
+    try:
+        signature_hex = extract_original_signature(original_apk)
+        print("    [+] Signature extracted successfully.")
+    except Exception as e:
+        print(f"    [-] Failed to extract signature: {e}")
+        return False
+
+    # 2. יצירת מחלקת ה-Smali המזייפת
+    smali_dir = os.path.join(decompiled_dir, "smali_classes2", "com", "whatsapp", "kosher")
+    os.makedirs(smali_dir, exist_ok=True)
+    
+    bypass_smali_path = os.path.join(smali_dir, "SigBypass.smali")
+    
+    smali_code = f"""
+.class public Lcom/whatsapp/kosher/SigBypass;
+.super Ljava/lang/Object;
+
+.method public static getPackageInfo(Landroid/content/pm/PackageManager;Ljava/lang/String;I)Landroid/content/pm/PackageInfo;
+    .registers 7
+    .annotation system Ldalvik/annotation/Throws;
+        value = {{
+            Landroid/content/pm/PackageManager$NameNotFoundException;
+        }}
+    .end annotation
+
+    # קריאה לפונקציה המקורית
+    invoke-virtual {{p0, p1, p2}}, Landroid/content/pm/PackageManager;->getPackageInfo(Ljava/lang/String;I)Landroid/content/pm/PackageInfo;
+    move-result-object v0
+
+    # אם חזר null, נחזיר null
+    if-nez v0, :not_null
+    return-object v0
+
+    :not_null
+    # נוודא שמדובר בוואטסאפ ולא באפליקציה אחרת ש-SDK כלשהו מנסה לבדוק
+    const-string v1, "com.whatsapp"
+    invoke-virtual {{v1, p1}}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z
+    move-result v1
+    if-nez v1, :is_whatsapp
+    return-object v0
+
+    :is_whatsapp
+    # יצירת אובייקט חתימה מזויף עם החתימה המקורית
+    new-instance v1, Landroid/content/pm/Signature;
+    const-string v2, "{signature_hex}"
+    invoke-direct {{v1, v2}}, Landroid/content/pm/Signature;-><init>(Ljava/lang/String;)V
+
+    # הזרקת החתימה לתוך מערך
+    const/4 v2, 0x1
+    new-array v2, v2,[Landroid/content/pm/Signature;
+    const/4 v3, 0x0
+    aput-object v1, v2, v3
+    iput-object v2, v0, Landroid/content/pm/PackageInfo;->signatures:[Landroid/content/pm/Signature;
+
+    # נטרול שדה ה-signingInfo של אנדרואיד 9 ומעלה
+    # הפיכתו ל-null מאלצת את וואטסאפ להסתמך על מערך ה-signatures שזה עתה שתלנו
+    const/4 v1, 0x0
+    iput-object v1, v0, Landroid/content/pm/PackageInfo;->signingInfo:Landroid/content/pm/SigningInfo;
+
+    return-object v0
+.end method
+"""
+    with open(bypass_smali_path, 'w', encoding='utf-8') as f:
+        f.write(smali_code.strip())
+    print("    [+] Injected SigBypass.smali")
+
+    # 3. סריקה והחלפה של כל הקריאות ל-getPackageInfo בכל הקוד של וואטסאפ
+    print("    [*] Redirecting getPackageInfo calls to SigBypass...")
+    
+    # תבנית שמחפשת קריאה וירטואלית רגילה
+    pattern = re.compile(
+        r"invoke-virtual\s*\{([vp]\d+),\s*([vp]\d+),\s*([vp]\d+)\},\s*Landroid/content/pm/PackageManager;->getPackageInfo\(Ljava/lang/String;I\)Landroid/content/pm/PackageInfo;"
+    )
+    
+    patched_count = 0
+    for root_path, _, files in os.walk(decompiled_dir):
+        for file in files:
+            if file.endswith(".smali"):
+                full_path = os.path.join(root_path, file)
+                try:
+                    with open(full_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                    
+                    if "Landroid/content/pm/PackageManager;->getPackageInfo(Ljava/lang/String;I)" in content:
+                        # החלפה לקריאה סטטית למחלקה שלנו
+                        new_content, subs = pattern.subn(
+                            r"invoke-static {\1, \2, \3}, Lcom/whatsapp/kosher/SigBypass;->getPackageInfo(Landroid/content/pm/PackageManager;Ljava/lang/String;I)Landroid/content/pm/PackageInfo;",
+                            content
+                        )
+                        if subs > 0:
+                            with open(full_path, 'w', encoding='utf-8') as f:
+                                f.write(new_content)
+                            patched_count += subs
+                except Exception:
+                    continue
+                    
+    print(f"    [+] Successfully redirected {patched_count} calls to signature bypass.")
+    return patched_count > 0
+
 # --------------------------------------------------------- 
 # פונקציות עזר 
 # --------------------------------------------------------- 
