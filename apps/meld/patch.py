@@ -89,6 +89,11 @@ def patch(decompiled_dir: str) -> bool:
     if not _patch_thumbnail(decompiled_dir):
         print("[-] Warning: Failed to patch Thumbnail.smali. Continuing...")
     
+    # 1.5. חסימת תמונות קטנות מספוטיפיי (SpotifyImage) - הוספנו כאן!
+    if not _patch_spotify_images(decompiled_dir):
+        print("[-] Warning: Failed to patch SpotifyImage.smali. Continuing...")
+
+    
     # 2. הזרקת JS וחסימת תמונות ב-WebView של YouTube
     yt_webview_client = _find_webview_client_target(decompiled_dir)
     if yt_webview_client:
@@ -140,6 +145,35 @@ def _find_webview_client_target(root_dir):
                             return path
                 except: pass
     return None
+
+def _patch_spotify_images(root_dir):
+    """
+    חוסם טעינת תמונות של ספוטיפיי על ידי איפוס הכתובת במודל SpotifyImage.
+    (מבוסס על קוד Smali אמיתי - שדה 'a' מייצג את ה-URL)
+    """
+    print("[*] Searching for SpotifyImage.smali to block Spotify thumbnails...")
+    target_found = False
+    for root, dirs, files in os.walk(root_dir):
+        if "SpotifyImage.smali" in files and "spotify" in root and "models" in root:
+            target_path = os.path.join(root, "SpotifyImage.smali")
+            try:
+                with open(target_path, 'r', encoding='utf-8') as f: content = f.read()
+                
+                # Regex שתופס את פקודת ההשמה של הכתובת (לתוך המשתנה 'a') בכל הבנאים הקיימים בקלאס
+                pattern = r'(iput-object ([vp]\d+), [vp]\d+, Lcom/metrolist/spotify/models/SpotifyImage;->a:Ljava/lang/String;)'
+                
+                if re.search(pattern, content):
+                    # אנחנו תופסים את האוגר שבו שמורה הכתובת (\2), מאפסים אותו למחרוזת ריקה, 
+                    # ומיד לאחר מכן מבצעים את פקודת ההשמה המקורית (\1).
+                    new_content = re.sub(pattern, r'const-string \2, ""\n    \1', content)
+                    with open(target_path, 'w', encoding='utf-8') as f: f.write(new_content)
+                    print("[+] SpotifyImage.smali: Spotify Image URLs blocked successfully.")
+                    target_found = True
+                else:
+                    print("[-] SpotifyImage.smali: URL assignment pattern not found.")
+            except Exception as e:
+                print(f"[-] Error patching SpotifyImage.smali: {e}")
+    return target_found
 
 def _patch_webview(file_path):
     print(f"[*] Patching YouTube WebViewClient file: {os.path.basename(file_path)}...")
