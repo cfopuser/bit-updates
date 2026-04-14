@@ -1,0 +1,14 @@
+{
+  "id": "mizrahi",
+  "name": "Mizrahi Tefahot",
+  "name_he": "מזרחי טפחות",
+  "package_name": "com.MizrahiTefahot.nh",
+  "description": "banking app for Mizrahi Tefahot - patched for netfree.",
+  "description_he":"אפליקציית הבנקאות של מזרחי טפחות - ערוכה עבור נטפרי",
+  "icon_url": "https://cdn.aptoide.com/imgs/9/6/f/96fd01f961e10fa0cb503e53abed794c_icon.png",
+  "source": "apkpure_mobile",
+  "maintainer": "lilor159357",
+  "inject_updater": true,
+  "version_file": "apps/mizrahi/version.txt",
+  "status_file": "apps/mizrahi/status.json"
+}
