@@ -35,7 +35,12 @@ SOURCE_DEFINITIONS: dict[str, SourceDefinition] = {
         )
     ),
     "apkpure_mobile": SourceDefinition(factory=lambda _cfg: APKPureMobileSource()),
-    "github": SourceDefinition(factory=lambda _cfg: GitHubSource(), lookup_field="repo"),
+    "github": SourceDefinition(
+        factory=lambda cfg: GitHubSource(
+            asset_regex=cfg.get("github_asset_regex")
+        ),
+        lookup_field="repo",
+    ),
 }
 
 

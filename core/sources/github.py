@@ -2,8 +2,9 @@ import requests
 import re
 
 class GitHubSource:
-    def __init__(self, timeout: int = 10):
+    def __init__(self, timeout: int = 10, asset_regex: str | None = None):
         self.timeout = timeout
+        self.asset_regex = asset_regex
         self.api_base_url = "https://api.github.com/repos"
 
     def get_latest_version(self, repo: str):
@@ -17,6 +18,9 @@ class GitHubSource:
             (version, download_url, title)
         """
         print(f"[*] [GitHub] Fetching latest release for: {repo}")
+        if self.asset_regex:
+            print(f"[*] [GitHub] Filtering assets with regex: {self.asset_regex}")
+
         url = f"{self.api_base_url}/{repo}/releases/latest"
         
         try:
@@ -35,16 +39,28 @@ class GitHubSource:
                 version = tag_name
             title = data.get("name") or version
             
-            # Find the first .apk asset
+            # Find the first matching .apk asset
             assets = data.get("assets", [])
             download_url = None
             for asset in assets:
-                if asset.get("name", "").endswith(".apk"):
+                name = asset.get("name", "")
+                if not name.endswith(".apk"):
+                    continue
+                
+                if self.asset_regex:
+                    if re.search(self.asset_regex, name):
+                        download_url = asset.get("browser_download_url")
+                        print(f"[+] [GitHub] Found matching asset: {name}")
+                        break
+                else:
                     download_url = asset.get("browser_download_url")
                     break
             
             if not download_url:
-                print(f"[-] [GitHub] No APK asset found in release {version}")
+                if self.asset_regex:
+                    print(f"[-] [GitHub] No APK asset matching '{self.asset_regex}' found in release {version}")
+                else:
+                    print(f"[-] [GitHub] No APK asset found in release {version}")
                 return None, None, None
                 
             return version, download_url, title
