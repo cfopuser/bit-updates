@@ -36,16 +36,16 @@
     background-color: rgba(75, 85, 99, 0.8);
 }
 
-html {
-    scroll-behavior: smooth;
+/* Tap Highlight Removal for Mobile */
+* {
     -webkit-tap-highlight-color: transparent;
-    text-rendering: optimizeLegibility;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
 }
 
-body {
-    font-size: 100%;
+/* Sharp and Legible Text Rendering */
+html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
 }
 
 /* Base Animations */
@@ -62,4 +62,5 @@ body {
 
 .animate-fade-in {
     animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    will-change: transform, opacity;
 }

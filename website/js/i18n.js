@@ -1,8 +1,8 @@
 export const i18n = {
     en: {
         title: "Store",
-        discover: "Curated Artifacts",
-        subtitle: "Patched and maintained for the community. Crafted with precision.",
+        discover: "App Collection",
+        subtitle: `Patched and "kosher" versions with automatic updates.`,
         searchPlaceholder: "Search index...",
         get: "Install",
         featured: "Highlighted Release",
