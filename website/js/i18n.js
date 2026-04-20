@@ -29,7 +29,7 @@ export const i18n = {
     },
     he: {
         title: "חנות",
-        discover: "ארטיפקטים נבחרים",
+        discover: "מאגר אפליקציות",
         subtitle: "גרסאות ערוכות וחסומות, מתעדכנות אוטומטית.",
         searchPlaceholder: "חיפוש באינדקס...",
         get: "התקנה",
