@@ -10,7 +10,7 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script data-goatcounter="https://cfopuser.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
@@ -22,7 +22,7 @@
             theme: {
                 extend: {
                     fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
+                        sans: ['Rubik', 'sans-serif'],
                     }
                 }
             }
@@ -46,24 +46,24 @@
                         <div class="absolute inset-0 bg-gradient-to-tr from-rose-400 via-purple-400 to-blue-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                         <i data-lucide="smartphone" class="w-4 h-4 relative z-10 group-hover:text-white transition-colors text-inherit"></i>
                     </div>
-                    <span class="font-semibold text-lg tracking-tight" data-key="title">Store</span>
+                    <span class="font-bold text-xl tracking-tight" data-key="title">Store</span>
                 </div>
 
                 <!-- Search -->
                 <div class="hidden md:flex flex-1 max-w-sm mx-8">
                     <div class="relative w-full rounded-md transition-all bg-white border border-zinc-200 shadow-sm focus-within:border-zinc-400 dark:bg-[#1A1A21] dark:border-zinc-800 dark:focus-within:border-zinc-600">
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none rtl:right-0 rtl:pr-3 rtl:left-auto rtl:pl-0" id="searchIconWrapper">
-                            <i data-lucide="search" class="w-3.5 h-3.5 text-zinc-400 dark:text-zinc-500"></i>
+                            <i data-lucide="search" class="w-4 h-4 text-zinc-400 dark:text-zinc-500"></i>
                         </div>
                         <input type="text" id="searchInput"
-                            class="block w-full rounded-md border-0 py-1.5 pl-9 pr-3 rtl:pr-9 rtl:pl-3 bg-transparent outline-none text-sm font-mono placeholder:font-sans transition-colors"
+                            class="block w-full rounded-md border-0 py-2 pl-10 pr-3 rtl:pr-10 rtl:pl-3 bg-transparent outline-none text-base placeholder:font-sans transition-colors"
                             data-key-placeholder="searchPlaceholder" placeholder="Search index...">
                     </div>
                 </div>
 
                 <!-- Controls -->
                 <div class="flex items-center gap-1">
-                    <button id="langToggle" class="p-2 rounded-md text-xs font-mono font-medium transition-all text-zinc-500 hover:bg-zinc-200 hover:text-zinc-800 dark:hover:bg-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200">
+                    <button id="langToggle" class="p-2 rounded-md text-sm font-medium transition-all text-zinc-500 hover:bg-zinc-200 hover:text-zinc-800 dark:hover:bg-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200">
                         <span id="langLabel">HE</span>
                     </button>
                     <div class="w-[1px] h-4 bg-zinc-300 dark:bg-zinc-700 mx-1"></div>
@@ -84,9 +84,9 @@
     <main class="relative z-10 max-w-7xl mx-auto px-6 lg:px-8 py-12 space-y-16">
         
         <!-- Hero Section -->
-        <section class="space-y-4 max-w-2xl animate-fade-in">
-            <h1 class="text-4xl md:text-5xl font-medium tracking-tight" data-key="discover">Curated Artifacts</h1>
-            <p class="text-lg leading-relaxed text-zinc-500 dark:text-zinc-400" data-key="subtitle">Patched and maintained for the community. Crafted with precision.</p>
+        <section class="space-y-6 max-w-2xl animate-fade-in">
+            <h1 class="text-5xl md:text-6xl font-bold tracking-tight" data-key="discover">Curated Artifacts</h1>
+            <p class="text-xl leading-relaxed text-zinc-500 dark:text-zinc-400" data-key="subtitle">Patched and maintained for the community. Crafted with precision.</p>
         </section>
 
         <!-- Loader -->

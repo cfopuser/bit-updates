@@ -36,9 +36,16 @@
     background-color: rgba(75, 85, 99, 0.8);
 }
 
-/* Tap Highlight Removal for Mobile */
-* {
+html {
+    scroll-behavior: smooth;
     -webkit-tap-highlight-color: transparent;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+    font-size: 105%;
 }
 
 /* Base Animations */
