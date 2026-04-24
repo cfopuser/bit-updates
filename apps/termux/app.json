@@ -1,10 +1,10 @@
 {
   "id": "termux",
   "name": "Termux",
-  "name_he": "Termux",
+  "name_he": "טרמוקס",
   "package_name": "com.termux.api",
   "description": "Android terminal app — patched to be used in netfree. Note that this app can be used as a browser.",
-  "description_he": "אפליקציית טרמינל לאנדרואיד — ערוכה לשימוש בנטפרי. שימו לב שאפליקצייה זו יכולה לשמש כדפדפן.",
+  "description_he": "טרמוקס היא אפליקציית טרמינל לאנדרואיד — ערוכה לשימוש בנטפרי. שימו לב שאפליקצייה זו יכולה לשמש כדפדפן.",
   "icon_url": "http://upload.wikimedia.org/wikipedia/commons/b/b5/Termux.svg",
   "source": "github",
   "repo": "termux/termux-app",
