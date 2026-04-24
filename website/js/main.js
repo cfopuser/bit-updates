@@ -5,6 +5,8 @@ import { renderGrid, closeModal, loader, appGrid, emptyState } from './ui.js';
 let isDark = localStorage.getItem('theme') === 'dark' ||
     (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches);
 
+let currentSort = 'default';
+
 function updateTheme() {
     const html = document.documentElement;
     const themeBtnOuter = document.getElementById('themeToggle');
@@ -52,7 +54,7 @@ function updateLangUI() {
     // Re-render grid if data is loaded
     if (Object.keys(appConfigs).length > 0) {
         const query = document.getElementById('searchInput').value;
-        renderGrid(query);
+        renderGrid(query, currentSort);
     }
 }
 
@@ -70,7 +72,7 @@ async function init() {
     loader.classList.add('hidden');
     if (success && Object.keys(appConfigs).length > 0) {
         const query = document.getElementById('searchInput').value;
-        renderGrid(query);
+        renderGrid(query, currentSort);
     } else {
         emptyState.classList.remove('hidden');
     }
@@ -84,7 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 
     document.getElementById('searchInput').addEventListener('input', (e) => {
-        renderGrid(e.target.value);
+        renderGrid(e.target.value, currentSort);
         // Sync with mobile search if visible
         const mobSearch = document.getElementById('mobileSearchInput');
         if (mobSearch) mobSearch.value = e.target.value;
@@ -93,7 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const mobSearch = document.getElementById('mobileSearchInput');
     if (mobSearch) {
         mobSearch.addEventListener('input', (e) => {
-            renderGrid(e.target.value);
+            renderGrid(e.target.value, currentSort);
             // Sync with desktop search
             document.getElementById('searchInput').value = e.target.value;
         });
@@ -107,6 +109,25 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!container.classList.contains('hidden')) {
                 document.getElementById('mobileSearchInput').focus();
             }
+        });
+    }
+
+    const sortBtn = document.getElementById('sortDownloads');
+    if (sortBtn) {
+        sortBtn.addEventListener('click', () => {
+            currentSort = currentSort === 'downloads' ? 'default' : 'downloads';
+            
+            // Visual feedback - change only text color
+            if (currentSort === 'downloads') {
+                sortBtn.classList.add('text-rose-500', 'dark:text-rose-400');
+                sortBtn.classList.remove('text-zinc-400', 'dark:text-zinc-500');
+            } else {
+                sortBtn.classList.remove('text-rose-500', 'dark:text-rose-400');
+                sortBtn.classList.add('text-zinc-400', 'dark:text-zinc-500');
+            }
+
+            const query = document.getElementById('searchInput').value;
+            renderGrid(query, currentSort);
         });
     }
 

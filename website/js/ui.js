@@ -164,12 +164,16 @@ function buildFeaturedApp(appId) {
     `;
 }
 
-export function renderGrid(query = '') {
-    const appsList = Object.keys(appConfigs);
+export function renderGrid(query = '', sortBy = 'default') {
+    let appsList = Object.keys(appConfigs);
     
     // Sort apps by downloads to find the featured app
-    const sortedApps = [...appsList].sort((a, b) => (appStats[b] || 0) - (appStats[a] || 0));
-    const featuredAppId = sortedApps[0];
+    const sortedByStats = [...appsList].sort((a, b) => (appStats[b] || 0) - (appStats[a] || 0));
+    const featuredAppId = sortedByStats[0];
+
+    if (sortBy === 'downloads') {
+        appsList = sortedByStats;
+    }
 
     let filteredApps = appsList;
     if (query) {

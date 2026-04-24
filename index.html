@@ -29,6 +29,7 @@
         }
     </script>
     <link rel="stylesheet" href="website/style.css">
+    <link rel="icon" type="image/png" href="website/images/favicon.png">
 </head>
 
 <body class="bg-[#F9F9FA] text-zinc-900 dark:bg-[#0E0E12] dark:text-zinc-100 transition-colors duration-500 min-h-screen font-sans selection:bg-rose-500/30 overflow-x-hidden">
@@ -44,7 +45,7 @@
                 <div class="flex items-center gap-3 group cursor-pointer" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
                     <div class="relative flex items-center justify-center w-8 h-8 rounded-lg bg-transparent border border-zinc-300 dark:border-zinc-700 overflow-hidden transition-all duration-300 group-hover:border-transparent">
                         <div class="absolute inset-0 bg-gradient-to-tr from-rose-400 via-purple-400 to-blue-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                        <i data-lucide="smartphone" class="w-4 h-4 relative z-10 group-hover:text-white transition-colors text-inherit"></i>
+                        <img src="website/images/favicon.png" alt="Logo" class="w-full h-full object-cover relative z-10 group-hover:scale-110 transition-transform duration-300">
                     </div>
                     <span class="font-semibold text-lg tracking-tight" data-key="title text-base sm:text-lg">Store</span>
                 </div>
@@ -117,6 +118,12 @@
         <section class="space-y-6 hidden" id="gridContainer">
             <div class="flex items-center gap-4">
                 <h2 class="text-[10px] sm:text-xs font-sans uppercase tracking-[0.15em] font-bold text-zinc-400 dark:text-zinc-500" data-key="allApps" id="gridTitle">Repository</h2>
+                
+                <button id="sortDownloads" class="flex items-center gap-1.5 transition-all text-zinc-400 hover:text-zinc-900 dark:text-zinc-500 dark:hover:text-zinc-100 group">
+                    <i data-lucide="arrow-down-wide-narrow" class="w-3.5 h-3.5 transition-transform group-hover:scale-110"></i>
+                    <span class="text-[10px] font-bold uppercase tracking-wider" data-key="mostDownloads">Most Downloads</span>
+                </button>
+
                 <div class="h-[1px] flex-1 bg-zinc-200/50 dark:bg-zinc-800/50"></div>
             </div>
             
