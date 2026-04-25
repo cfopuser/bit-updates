@@ -151,11 +151,13 @@ function renderStep1() {
     </div>`;
 }
 
-const SOURCES = ['APKMirror', 'APKPure', 'Aptoide', 'GitHub', 'Other'];
+const SOURCES = ['APKMirror', 'APKPure', 'Aptoide', 'Uptodown', 'AuroraStore', 'GitHub', 'Other'];
 const SOURCE_ICONS = { 
     APKMirror: 'globe', 
     APKPure: 'smartphone', 
     Aptoide: 'shopping-bag', 
+    Uptodown: 'download-cloud',
+    AuroraStore: 'box',
     GitHub: 'code-2', 
     Other: 'more-horizontal' 
 };
@@ -163,6 +165,8 @@ const SOURCE_LABEL_KEYS = {
     APKMirror: 'formSourceAPKMirror', 
     APKPure: 'formSourceAPKPure', 
     Aptoide: 'formSourceAptoide', 
+    Uptodown: 'formSourceUptodown',
+    AuroraStore: 'formSourceAuroraStore',
     GitHub: 'formSourceGitHub', 
     Other: 'formSourceOther' 
 };
@@ -296,7 +300,7 @@ function renderStep() {
             <i data-lucide="plus-circle" class="w-3.5 h-3.5 text-fuchsia-500"></i>
             <span class="text-xs font-semibold text-fuchsia-600 dark:text-fuchsia-400 uppercase tracking-wider"><bdi>${t('formTitle')}</bdi></span>
         </div>
-        <p class="text-sm text-zinc-500 dark:text-zinc-400"><bdi>${t('formSubtitle')}</bdi></p>
+        <p class="text-sm text-zinc-500 dark:text-zinc-400 whitespace-pre-line"><bdi>${t('formSubtitle')}</bdi></p>
     </div>
 
     <!-- Progress Stepper (Animated Line) -->
