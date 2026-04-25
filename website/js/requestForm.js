@@ -92,9 +92,9 @@ function validate(stepIndex) {
 // ─── Step renderers ───────────────────────────────────────────────────────────
 function fieldGroup(id, label, hint, inputHtml, error) {
     return `
-    <div class="space-y-1.5">
-        <label for="${id}" class="block text-sm font-semibold text-zinc-800 dark:text-zinc-200">${label}</label>
-        ${hint ? `<p class="text-xs text-zinc-400 dark:text-zinc-500">${hint}</p>` : ''}
+    <div class="space-y-2">
+        <label for="${id}" class="block text-base font-bold text-zinc-900 dark:text-zinc-200">${label}</label>
+        ${hint ? `<p class="text-sm text-zinc-500 dark:text-zinc-500 leading-relaxed">${hint}</p>` : ''}
         ${inputHtml}
         ${error ? `<p class="text-xs text-rose-500 flex items-center gap-1 mt-1"><i data-lucide="alert-circle" class="w-3 h-3 flex-shrink-0"></i><bdi>${error}</bdi></p>` : ''}
     </div>`;
@@ -178,9 +178,9 @@ function renderStep2() {
         <button type="button" data-source="${src}"
             class="source-card flex flex-col items-center gap-2 p-4 rounded-xl border transition-all cursor-pointer text-center focus:outline-none ${isSelected
                 ? 'border-fuchsia-400 bg-fuchsia-50 dark:bg-fuchsia-950/30 dark:border-fuchsia-500 ring-2 ring-fuchsia-400/30 text-fuchsia-700 dark:text-fuchsia-300'
-                : 'border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 hover:border-zinc-300 dark:hover:border-zinc-600 hover:bg-white dark:hover:bg-zinc-800'}">
+                : 'border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-900 text-zinc-700 dark:text-zinc-400 hover:border-zinc-300 dark:hover:border-zinc-600 hover:bg-white dark:hover:bg-zinc-800'}">
             <i data-lucide="${SOURCE_ICONS[src]}" class="w-5 h-5"></i>
-            <span class="text-xs font-semibold"><bdi>${t(SOURCE_LABEL_KEYS[src])}</bdi></span>
+            <span class="text-sm font-bold"><bdi>${t(SOURCE_LABEL_KEYS[src])}</bdi></span>
         </button>`;
     }).join('');
 
@@ -202,7 +202,7 @@ function renderStep2() {
                         <i data-lucide="check" class="w-3 h-3 text-white opacity-0 peer-checked:opacity-100 transition-opacity" id="ackCheck"></i>
                     </div>
                 </div>
-                <span class="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed"><bdi>${t('formFieldAck')}</bdi></span>
+                <span class="text-base text-zinc-700 dark:text-zinc-400 leading-relaxed"><bdi>${t('formFieldAck')}</bdi></span>
             </label>
             ${errors.ack ? `<p class="text-xs text-rose-500 flex items-center gap-1"><i data-lucide="alert-circle" class="w-3 h-3 flex-shrink-0"></i><bdi>${errors.ack}</bdi></p>` : ''}
         </div>
@@ -251,15 +251,15 @@ function renderStep() {
             ? 'bg-fuchsia-500 text-white shadow-sm ring-2 ring-fuchsia-500/20' 
             : active 
                 ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 shadow-md ring-4 ring-zinc-900/10 dark:ring-white/10 scale-110' 
-                : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-400';
-        const textClasses = active ? 'text-zinc-800 dark:text-zinc-200 font-bold scale-105' : 'text-zinc-400';
+                : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500';
+        const textClasses = active ? 'text-zinc-900 dark:text-zinc-200 font-bold scale-105 underline underline-offset-4 decoration-fuchsia-400/40' : 'text-zinc-500 font-bold';
 
         return `
-        <div class="flex flex-col items-center gap-2 w-16 relative z-10 transition-transform duration-500">
-            <div class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-500 ${dotClasses}">
+        <div class="flex flex-col items-center gap-2 w-0 overflow-visible relative z-10 transition-transform duration-500">
+            <div class="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold transition-all duration-500 ${dotClasses}">
                 ${iconHTML}
             </div>
-            <span class="text-[10px] font-medium uppercase tracking-wider transition-all duration-500 ${textClasses}">
+            <span class="text-xs font-bold uppercase tracking-wider text-center w-32 transition-all duration-500 ${textClasses}">
                 <bdi>${label}</bdi>
             </span>
         </div>`;
@@ -300,7 +300,7 @@ function renderStep() {
             <i data-lucide="plus-circle" class="w-3.5 h-3.5 text-fuchsia-500"></i>
             <span class="text-xs font-semibold text-fuchsia-600 dark:text-fuchsia-400 uppercase tracking-wider"><bdi>${t('formTitle')}</bdi></span>
         </div>
-        <p class="text-sm text-zinc-500 dark:text-zinc-400 whitespace-pre-line"><bdi>${t('formSubtitle')}</bdi></p>
+        <p class="text-base text-zinc-600 dark:text-zinc-400 whitespace-pre-line leading-relaxed"><bdi>${t('formSubtitle')}</bdi></p>
     </div>
 
     <!-- Progress Stepper (Animated Line) -->

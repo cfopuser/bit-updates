@@ -53,8 +53,8 @@ function buildAppGridCard(appId) {
                 
                 <div class="flex flex-col items-end gap-2">
                     ${!isOk ? `<span title="${t('patchErrorTooltip')}" class="inline-flex items-center justify-center p-1 rounded-full bg-rose-500/10 text-rose-500 dark:text-rose-400"><i data-lucide="alert-circle" class="w-4 h-4"></i></span>` : ''}
-                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono uppercase tracking-widest bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400 border border-zinc-200/50 dark:border-zinc-700/50">
-                        <i data-lucide="download" class="w-3 h-3"></i> ${formatNumber(downloads)}
+                    <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-mono uppercase tracking-widest bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 border border-zinc-200/50 dark:border-zinc-700/50">
+                        <i data-lucide="download" class="w-3.5 h-3.5"></i> ${formatNumber(downloads)}
                     </span>
                 </div>
             </div>
@@ -63,25 +63,25 @@ function buildAppGridCard(appId) {
                 <div class="flex justify-between items-start">
                     <h3 class="font-semibold text-lg text-zinc-900 dark:text-zinc-100">${name}</h3>
                 </div>
-                <p class="font-mono text-[10px] text-zinc-400 dark:text-zinc-500 truncate">${config.package_name}</p>
-                <p class="text-sm leading-relaxed line-clamp-2 text-zinc-500 dark:text-zinc-400">${desc || ''}</p>
+                <p class="font-mono text-xs text-zinc-500 dark:text-zinc-500 truncate">${config.package_name}</p>
+                <p class="text-base leading-relaxed line-clamp-2 text-zinc-600 dark:text-zinc-400">${desc || ''}</p>
                 
                 ${config.maintainer ? `
-                <div class="flex items-center gap-1.5 mt-2 opacity-60 group-hover:opacity-100 transition-opacity">
-                    <div class="w-4 h-4 rounded-full bg-gradient-to-tr from-rose-400 to-indigo-500 p-[1px]">
+                <div class="flex items-center gap-1.5 mt-2 opacity-70 group-hover:opacity-100 transition-opacity">
+                    <div class="w-5 h-5 rounded-full bg-gradient-to-tr from-rose-400 to-indigo-500 p-[1px]">
                          <div class="w-full h-full rounded-full bg-white dark:bg-[#15151A] flex items-center justify-center">
-                            <i data-lucide="user" class="w-2 h-2 text-zinc-400"></i>
+                            <i data-lucide="user" class="w-2.5 h-2.5 text-zinc-500"></i>
                          </div>
                     </div>
-                    <span class="text-[10px] text-zinc-400 font-medium">@${config.maintainer}</span>
+                    <span class="text-xs text-zinc-500 dark:text-zinc-400 font-medium">@${config.maintainer}</span>
                 </div>
                 ` : ''}
             </div>
 
             <div class="flex items-end justify-between pt-4 border-t border-zinc-100 dark:border-zinc-800/60">
-                <div class="font-mono text-[10px] uppercase tracking-widest space-y-1.5 text-zinc-400 dark:text-zinc-500">
-                    <div class="text-zinc-700 dark:text-zinc-300 font-bold">${latest ? 'v' + latest.tag_name.replace(/.*-v|v/, '') : '-'}</div>
-                    <div class="flex items-center gap-1 opacity-70">
+                <div class="font-mono text-xs uppercase tracking-widest space-y-1.5 text-zinc-500 dark:text-zinc-500">
+                    <div class="text-zinc-800 dark:text-zinc-300 font-bold">${latest ? 'v' + latest.tag_name.replace(/.*-v|v/, '') : '-'}</div>
+                    <div class="flex items-center gap-1 opacity-80">
                          ${latest ? formatDate(latest.published_at) : ''}
                     </div>
                 </div>
@@ -112,7 +112,7 @@ function buildFeaturedApp(appId) {
     <section class="space-y-4 relative group" onclick="window.openAppModal('${appId}')" style="cursor: pointer;">
         <div class="flex items-center gap-2">
             <i data-lucide="sparkles" class="w-4 h-4 text-rose-400"></i>
-            <h2 class="text-xs font-sans uppercase tracking-[0.15em] font-bold text-zinc-400 dark:text-zinc-500">${t('mostDownloads')}</h2>
+            <h2 class="text-sm font-sans uppercase tracking-[0.15em] font-bold text-zinc-500 dark:text-zinc-500">${t('mostDownloads')}</h2>
         </div>
         
         <div class="relative">
@@ -127,21 +127,21 @@ function buildFeaturedApp(appId) {
                     
                     <div class="flex-1 space-y-2 sm:space-y-3 w-full">
                         <div class="flex flex-wrap items-baseline gap-2 sm:gap-3">
-                            <h3 class="text-2xl sm:text-3xl font-semibold text-zinc-900 dark:text-zinc-100">${name}</h3>
-                            <span class="text-[10px] sm:text-xs font-mono px-2 py-0.5 rounded border bg-zinc-100 border-zinc-200 text-zinc-500 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400">
+                            <h3 class="text-2xl sm:text-4xl font-semibold text-zinc-900 dark:text-zinc-100">${name}</h3>
+                            <span class="text-xs sm:text-sm font-mono px-2.5 py-1 rounded border bg-zinc-100 border-zinc-200 text-zinc-600 dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-400">
                                 ${latest ? 'v' + latest.tag_name.replace(/.*-v|v/, '') : '-'}
                             </span>
                         </div>
-                        <p class="font-mono text-[10px] sm:text-xs text-zinc-400 dark:text-zinc-500">${config.package_name}</p>
-                        <p class="text-sm sm:text-base leading-relaxed text-zinc-500 dark:text-zinc-400 max-w-xl">
+                        <p class="font-mono text-xs sm:text-sm text-zinc-500 dark:text-zinc-500">${config.package_name}</p>
+                        <p class="text-base sm:text-lg leading-relaxed text-zinc-700 dark:text-zinc-400 max-w-xl">
                             ${desc}
                         </p>
                         ${config.maintainer ? `
-                        <div class="flex items-center gap-2 opacity-70">
-                             <div class="w-5 h-5 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
-                                <i data-lucide="user" class="w-3 h-3 text-zinc-400"></i>
+                        <div class="flex items-center gap-2 opacity-80">
+                             <div class="w-6 h-6 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+                                <i data-lucide="user" class="w-3.5 h-3.5 text-zinc-500"></i>
                              </div>
-                             <span class="text-[10px] sm:text-xs text-zinc-500 font-medium">${t('maintainedBy')} @${config.maintainer}</span>
+                             <span class="text-sm text-zinc-600 font-medium">${t('maintainedBy')} @${config.maintainer}</span>
                         </div>
                         ` : ''}
                     </div>
@@ -228,24 +228,24 @@ export function openModal(appId) {
             <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-[1.5rem] sm:rounded-[2rem] shadow-xl mb-4 bg-white dark:bg-zinc-950 flex items-center justify-center ring-4 ring-white dark:ring-zinc-800/50 p-2 overflow-hidden">
                 <img src="${config.icon_url}" class="w-full h-full object-contain rounded-[1rem]" onerror="this.parentElement.innerHTML='<div class=\\'w-full h-full rounded-[1rem] ${visual.bg} flex items-center justify-center\\'><i data-lucide=\\'${visual.icon}\\' class=\\'w-10 h-10 ${visual.iconClass}\\'></i></div>'">
             </div>
-            <h2 class="text-2xl sm:text-3xl font-bold text-zinc-900 dark:text-zinc-100 mb-1 text-center">${name}</h2>
-            <p class="text-zinc-400 dark:text-zinc-500 font-mono text-xs sm:text-sm mb-4 break-all text-center px-4">${config.package_name}</p>
+            <h2 class="text-2xl sm:text-4xl font-bold text-zinc-900 dark:text-zinc-100 mb-2 text-center">${name}</h2>
+            <p class="text-zinc-500 dark:text-zinc-500 font-mono text-sm sm:text-base mb-6 break-all text-center px-4">${config.package_name}</p>
             
             ${config.maintainer ? `
-                <div class="inline-flex items-center gap-2 bg-zinc-100 dark:bg-zinc-800/50 px-4 py-2 rounded-full border border-zinc-200 dark:border-zinc-700/50 shadow-sm">
-                    <div class="w-6 h-6 rounded-full bg-gradient-to-br from-rose-400 to-indigo-500 flex items-center justify-center text-white text-[10px] font-bold shadow-inner">
-                        <i data-lucide="user" class="w-3 h-3"></i>
+                <div class="inline-flex items-center gap-2.5 bg-zinc-100 dark:bg-zinc-800/50 px-5 py-2.5 rounded-full border border-zinc-200 dark:border-zinc-700/50 shadow-sm">
+                    <div class="w-7 h-7 rounded-full bg-gradient-to-br from-rose-400 to-indigo-500 flex items-center justify-center text-white text-xs font-bold shadow-inner">
+                        <i data-lucide="user" class="w-4 h-4"></i>
                     </div>
-                    <span class="text-xs text-zinc-500 dark:text-zinc-400">
-                        ${t('maintainedBy')} <span class="font-semibold text-zinc-700 dark:text-zinc-200">@${config.maintainer}</span>
+                    <span class="text-sm text-zinc-600 dark:text-zinc-400">
+                        ${t('maintainedBy')} <span class="font-bold text-zinc-800 dark:text-zinc-200">@${config.maintainer}</span>
                     </span>
                 </div>
             ` : ''}
         </div>
 
-        <div class="mb-6 px-1">
-            <h3 class="font-bold text-zinc-900 dark:text-zinc-100 text-sm sm:text-base mb-2">About App</h3>
-            <p class="text-sm text-zinc-600 dark:text-zinc-400 leading-relaxed whitespace-pre-wrap">${desc || 'No description available.'}</p>
+        <div class="mb-8 px-1">
+            <h3 class="font-bold text-zinc-900 dark:text-zinc-100 text-base sm:text-lg mb-2.5">About App</h3>
+            <p class="text-base text-zinc-700 dark:text-zinc-400 leading-relaxed whitespace-pre-wrap">${desc || 'No description available.'}</p>
         </div>
 
         ${!isOk ? `
@@ -303,14 +303,14 @@ export function openModal(appId) {
         const a = r.assets.find(as => as.name.endsWith('.apk')) || r.assets[0];
         if (!a) return '';
         return `
-                        <a href="${a.browser_download_url}" onclick="window.trackDownload('${appId}')" class="group flex items-center justify-between p-3.5 rounded-2xl bg-zinc-50 dark:bg-zinc-800/30 hover:bg-zinc-100 dark:hover:bg-zinc-800 active:bg-zinc-200 dark:active:bg-zinc-700 transition-all border border-transparent hover:border-zinc-200 dark:hover:border-zinc-700 touch-manipulation">
+                        <a href="${a.browser_download_url}" onclick="window.trackDownload('${appId}')" class="group flex items-center justify-between p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/30 hover:bg-zinc-100 dark:hover:bg-zinc-800 active:bg-zinc-200 dark:active:bg-zinc-700 transition-all border border-transparent hover:border-zinc-200 dark:hover:border-zinc-700 touch-manipulation">
                             <div>
-                                <div class="font-semibold text-zinc-700 dark:text-zinc-200 text-sm mb-0.5 transition-colors">v${r.tag_name.replace(/.*-v|v/, '')}</div>
-                                <div class="text-xs text-zinc-500">${formatDate(r.published_at)}</div>
+                                <div class="font-bold text-zinc-800 dark:text-zinc-200 text-base mb-0.5 transition-colors">v${r.tag_name.replace(/.*-v|v/, '')}</div>
+                                <div class="text-sm text-zinc-600 dark:text-zinc-400">${formatDate(r.published_at)}</div>
                             </div>
-                            <div class="w-10 h-10 rounded-full bg-zinc-200 dark:bg-zinc-700 flex items-center justify-center transition-colors overflow-hidden relative">
+                            <div class="w-11 h-11 rounded-full bg-zinc-200 dark:bg-zinc-700 flex items-center justify-center transition-colors overflow-hidden relative">
                                 <div class="absolute inset-0 bg-gradient-to-tr from-rose-400 to-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                                <i data-lucide="download" class="text-zinc-400 w-4 h-4 group-hover:text-white transition-colors relative z-10"></i>
+                                <i data-lucide="download" class="text-zinc-500 w-5 h-5 group-hover:text-white transition-colors relative z-10"></i>
                             </div>
                         </a>
                         `;
