@@ -150,24 +150,18 @@ function renderStep1() {
     </div>`;
 }
 
-const SOURCES = ['APKMirror', 'APKPure', 'APKCombo', 'Aptoide', 'Uptodown', 'AuroraStore', 'GitHub', 'Other'];
+const SOURCES = ['APKMirror', 'APKPure', 'Aptoide', 'GitHub', 'Other'];
 const SOURCE_ICONS = { 
     APKMirror: 'globe', 
     APKPure: 'smartphone', 
-    APKCombo: 'layers',
     Aptoide: 'shopping-bag', 
-    Uptodown: 'download-cloud',
-    AuroraStore: 'box',
     GitHub: 'code-2', 
     Other: 'more-horizontal' 
 };
 const SOURCE_LABEL_KEYS = { 
     APKMirror: 'formSourceAPKMirror', 
     APKPure: 'formSourceAPKPure', 
-    APKCombo: 'formSourceAPKCombo',
     Aptoide: 'formSourceAptoide', 
-    Uptodown: 'formSourceUptodown',
-    AuroraStore: 'formSourceAuroraStore',
     GitHub: 'formSourceGitHub', 
     Other: 'formSourceOther' 
 };
