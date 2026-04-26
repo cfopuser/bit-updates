@@ -5,6 +5,7 @@
   "package_name": "il.co.bezeq.my",
   "description": "Bezeq app – patched for sideloading.",
   "description_he": "אפליקציית בזק - ערוכה להתקנה מקובץ.",
+  "inject_updater": false,
   "icon_url": "https://img.utdstc.com/icon/be1/4fe/be14feb80cf480cd05e867e4c236c74a6af3347dbb1cb0f365a60c7508cbb565:200",
   "source": "apkpure_mobile",
   "maintainer": "cfopuser",

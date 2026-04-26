@@ -4,7 +4,8 @@ manual_uptodown.py
 manual_apkcombo.py
 .tmp_aurora_store_2
 .tmp_gplayapi
-
+log*
+*.patch
 aurora_asset_list.txt
 .pytest_cache/
 scratch

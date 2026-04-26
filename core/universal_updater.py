@@ -214,26 +214,52 @@ def _inject_updater_call(activity_file_path: str) -> bool:
         print("[i] Updater call already exists in MainActivity.")
         return True
 
-    method_pattern = re.compile(
-        r"(\.method.*?onCreate\(Landroid/os/Bundle;\)V)(.*?)(\.end method)",
-        re.DOTALL,
+    updater_call = (
+        "\n\n    # --- START INJECTION (Universal Updater) ---\n"
+        "    invoke-static/range {p0 .. p0}, Lstoreautoupdater/Updater;->check(Landroid/content/Context;)V\n"
+        "    # --- END INJECTION ---\n\n    "
     )
-    match = method_pattern.search(content)
-    if not match:
-        print("[i] Could not find onCreate() in the detected MainActivity. Attempting to generate it...")
-        super_pattern = re.compile(r"\.super\s+(L[^;]+;)")
-        super_match = super_pattern.search(content)
-        if not super_match:
-            print("[-] Could not find .super class in MainActivity.")
-            return False
-        
-        super_class = super_match.group(1)
-        
-        injected_method = f"""
-.method protected onCreate(Landroid/os/Bundle;)V
+
+    methods_to_check = [
+        r"(\.method.*?onCreate\(Landroid/os/Bundle;\)V)(.*?)(\.end method)",
+        r"(\.method.*?onResume\(\)V)(.*?)(\.end method)",
+        r"(\.method.*?onStart\(\)V)(.*?)(\.end method)",
+    ]
+
+    import re
+    for pattern in methods_to_check:
+        method_pattern = re.compile(pattern, re.DOTALL)
+        match = method_pattern.search(content)
+        if match:
+            method_body = match.group(2)
+            last_return_idx = method_body.rfind("return-void")
+            if last_return_idx != -1:
+                new_method_body = method_body[:last_return_idx] + updater_call + method_body[last_return_idx:]
+                new_method = match.group(1) + new_method_body + match.group(3)
+                new_content = content.replace(match.group(0), new_method, 1)
+                try:
+                    with open(activity_file_path, "w", encoding="utf-8") as f:
+                        f.write(new_content)
+                    print(f"[+] Updater call injected successfully into {os.path.basename(activity_file_path)}")
+                    return True
+                except Exception as exc:
+                    print(f"[-] Failed to write activity file: {exc}")
+                    return False
+
+    print("[i] Standard lifecycle methods not found. Generating onResume()...")
+    super_pattern = re.compile(r"\.super\s+(L[^;]+;)")
+    super_match = super_pattern.search(content)
+    if not super_match:
+        print("[-] Could not find .super class in MainActivity.")
+        return False
+    
+    super_class = super_match.group(1)
+    
+    injected_method = f"""
+.method protected onResume()V
     .locals 0
 
-    invoke-super {{p0, p1}}, {super_class}->onCreate(Landroid/os/Bundle;)V
+    invoke-super {{p0}}, {super_class}->onResume()V
 
     # --- START INJECTION (Universal Updater) ---
     invoke-static/range {{p0 .. p0}}, Lstoreautoupdater/Updater;->check(Landroid/content/Context;)V
@@ -242,35 +268,11 @@ def _inject_updater_call(activity_file_path: str) -> bool:
     return-void
 .end method
 """
-        new_content = content + "\n" + injected_method
-        try:
-            with open(activity_file_path, "w", encoding="utf-8") as activity_file:
-                activity_file.write(new_content)
-            print(f"[+] Updater call and onCreate injected successfully into {os.path.basename(activity_file_path)}")
-            return True
-        except Exception as exc:
-            print(f"[-] Failed to write activity file: {exc}")
-            return False
-
-    method_body = match.group(2)
-    last_return_idx = method_body.rfind("return-void")
-    if last_return_idx == -1:
-        print("[-] Could not find return-void in MainActivity onCreate().")
-        return False
-
-    updater_call = (
-        "\n\n    # --- START INJECTION (Universal Updater) ---\n"
-        "    invoke-static/range {p0 .. p0}, Lstoreautoupdater/Updater;->check(Landroid/content/Context;)V\n"
-        "    # --- END INJECTION ---\n\n    "
-    )
-    new_method_body = method_body[:last_return_idx] + updater_call + method_body[last_return_idx:]
-    new_method = match.group(1) + new_method_body + match.group(3)
-    new_content = content.replace(match.group(0), new_method, 1)
-
+    new_content = content + "\n" + injected_method
     try:
-        with open(activity_file_path, "w", encoding="utf-8") as activity_file:
-            activity_file.write(new_content)
-        print(f"[+] Updater call injected successfully into {os.path.basename(activity_file_path)}")
+        with open(activity_file_path, "w", encoding="utf-8") as f:
+            f.write(new_content)
+        print(f"[+] Updater call and onResume injected successfully into {os.path.basename(activity_file_path)}")
         return True
     except Exception as exc:
         print(f"[-] Failed to write activity file: {exc}")
