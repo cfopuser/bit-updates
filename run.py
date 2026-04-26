@@ -21,6 +21,7 @@ from core.utils import (
     update_status,
     update_version,
     generate_download_stats,
+    generate_releases_index,
 )
 from core.downloader import DownloadError, download_app
 from core.pre_patcher import run_pre_patch
@@ -200,6 +201,11 @@ Examples:
         action="store_true",
         help="Fetch download counts from GitHub and exit",
     )
+    parser.add_argument(
+        "--update-releases",
+        action="store_true",
+        help="Generate static releases.json index and exit",
+    )
 
     args = parser.parse_args()
 
@@ -213,6 +219,10 @@ Examples:
 
     if args.update_stats:
         generate_download_stats()
+        return
+
+    if args.update_releases:
+        generate_releases_index()
         return
 
     # Determine which apps to process

@@ -1,18 +1,24 @@
-repomix-output.md
-manual_aptoide.py
-manual_uptodown.py
-manual_apkcombo.py
-.tmp_aurora_store_2
-.tmp_gplayapi
-log*
-*.patch
-aurora_asset_list.txt
-.pytest_cache/
-scratch
-__pycache__/
-*.pyc
-*.diff
+# File type
+
 *.apk
 *.xapk
 *.jar
+
+# Cache & temp files
+
+__pycache__/
+*.pyc
+.pytest_cache/
+scratch
+.tmp_aurora_store_2
+.tmp_gplayapi
+
+# junk files
+
+repomix-output.md
+
+logcat_*.txt
+*.patch
+*.diff
 desktop.html
+

@@ -182,3 +182,67 @@ def generate_download_stats(repo_name: str = "cfopuser/app-store", output_file: 
     with open(output_file, "w", encoding="utf-8") as f:
         json.dump(stats, f, indent=2)
     print(f"[+] Download stats saved to {output_file}")
+
+
+def generate_releases_index(repo_name: str = "cfopuser/app-store", output_file: str = "releases.json"):
+    """
+    Fetch ALL releases from GitHub (with pagination) and write a static
+    releases.json index.  This file is committed to the repo and served
+    by GitHub Pages so the website never needs to hit the GitHub API
+    at runtime — completely side-stepping rate-limit issues.
+
+    Must be run in CI where GITHUB_TOKEN is available (5 000 req/h).
+    """
+    import requests
+
+    print(f"[*] Generating releases index for {repo_name}...")
+
+    headers = {"Accept": "application/vnd.github+json"}
+    token = os.environ.get("GITHUB_TOKEN")
+    if token:
+        headers["Authorization"] = f"token {token}"
+    else:
+        print("[!] Warning: No GITHUB_TOKEN set — may hit rate limits.")
+
+    all_releases = []
+    page = 1
+
+    while True:
+        url = f"https://api.github.com/repos/{repo_name}/releases?per_page=100&page={page}"
+        resp = requests.get(url, headers=headers)
+        if resp.status_code != 200:
+            print(f"[-] Failed to fetch releases page {page}: {resp.status_code} {resp.text}")
+            break
+
+        releases = resp.json()
+        if not releases:
+            break
+
+        for r in releases:
+            # Only keep the fields the website actually needs — keeps the
+            # file small and avoids leaking anything sensitive.
+            entry = {
+                "tag_name": r.get("tag_name", ""),
+                "name": r.get("name", ""),
+                "published_at": r.get("published_at", ""),
+                "body": r.get("body", ""),
+                "html_url": r.get("html_url", ""),
+                "assets": [],
+            }
+            for asset in r.get("assets", []):
+                entry["assets"].append({
+                    "name": asset.get("name", ""),
+                    "size": asset.get("size", 0),
+                    "download_count": asset.get("download_count", 0),
+                    "browser_download_url": asset.get("browser_download_url", ""),
+                })
+            all_releases.append(entry)
+
+        if len(releases) < 100:
+            break
+        page += 1
+
+    with open(output_file, "w", encoding="utf-8") as f:
+        json.dump(all_releases, f, separators=(",", ":"))
+
+    print(f"[+] Releases index saved to {output_file} ({len(all_releases)} releases)")

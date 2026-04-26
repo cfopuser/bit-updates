@@ -1,9 +1,41 @@
-import { RELEASES_API, APPS_DIR, REGISTERED_APPS, setRegisteredApps } from './config.js';
+import { RELEASES_INDEX, RELEASES_API, APPS_DIR, REGISTERED_APPS, setRegisteredApps } from './config.js';
 
 export let allReleases = [];
 export let appConfigs = {};
 export let appStatuses = {};
 export let appStats = {};
+
+/**
+ * Fetch releases from the static index first (no rate-limit risk).
+ * Falls back to the GitHub API only if the static file is missing.
+ */
+async function fetchReleases() {
+    // 1. Try the static releases.json committed by the CI workflow
+    try {
+        const resp = await fetch(RELEASES_INDEX);
+        if (resp.ok) {
+            const data = await resp.json();
+            if (Array.isArray(data) && data.length > 0) {
+                console.log(`[api] Loaded ${data.length} releases from static index`);
+                return data;
+            }
+        }
+    } catch { /* static file not available — fall through */ }
+
+    // 2. Fallback: live GitHub API (may be rate-limited for anonymous users)
+    console.warn('[api] Static releases.json unavailable — falling back to GitHub API');
+    try {
+        const resp = await fetch(RELEASES_API);
+        if (resp.ok) {
+            return await resp.json();
+        }
+        console.error(`[api] GitHub API returned ${resp.status}`);
+    } catch (e) {
+        console.error('[api] GitHub API fetch failed', e);
+    }
+
+    return [];
+}
 
 export async function fetchAppData() {
     try {
@@ -16,14 +48,14 @@ export async function fetchAppData() {
         }
         setRegisteredApps(apps);
 
-        const [releasesResp, ...configsResps] = await Promise.all([
-            fetch(RELEASES_API).then(r => r.json()),
+        const [releases, ...configsResps] = await Promise.all([
+            fetchReleases(),
             ...REGISTERED_APPS.map(id => fetch(`${APPS_DIR}/${id}/app.json`).then(r => r.json().catch(() => null))),
             ...REGISTERED_APPS.map(id => fetch(`${APPS_DIR}/${id}/status.json`).then(r => r.json().catch(() => ({ success: true })))),
             fetch('download_stats.json').then(r => r.json().catch(() => ({})))
         ]);
 
-        allReleases = releasesResp;
+        allReleases = releases;
         const configs = configsResps.slice(0, REGISTERED_APPS.length);
         const statuses = configsResps.slice(REGISTERED_APPS.length, REGISTERED_APPS.length * 2);
         appStats = configsResps[configsResps.length - 1] || {};
