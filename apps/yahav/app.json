@@ -5,7 +5,7 @@
   "package_name": "il.co.yahav.mobbanking",
   "description": "yahav bank app - patched for sideloading",
   "description_he": "אפליקציית בנק יהב -  ערוכה להתקנה מקובץ, ולשימוש ברוט ואמולטורים.",
-  "icon_url": "https://play-lh.googleusercontent.com/iYUutq7tm7SeG1_a7DAJMgF8WNxL2Oemjkq1ObR0D92_iWVhK9oggz_vu2coauhSV_4",
+  "icon_url": "yahav.png",
   "source": "aptoide",
   "maintainer": "cfopuser",
   "version_file": "apps/yahav/version.txt",
