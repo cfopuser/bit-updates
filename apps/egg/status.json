@@ -1,1 +1,1 @@
-{"success": false, "failed_version": "unknown", "error_message": "[egg - Bus & Train in Israel] Error during download process: ('Connection broken: IncompleteRead(16776713 bytes read, 28164559 more expected)', IncompleteRead(16776713 bytes read, 28164559 more expected))", "updated_at": "Tue Apr 28 06:26:33 UTC 2026"}
+{"success": true, "failed_version": "", "error_message": "", "updated_at": "Sat Apr 25 05:44:51 UTC 2026"}
