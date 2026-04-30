@@ -141,6 +141,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     document.getElementById('searchInput').addEventListener('input', (e) => {
+        if (window.location.hash !== '') {
+            window.location.hash = '';
+        }
         renderGrid(e.target.value, currentSort);
         // Sync with mobile search if visible
         const mobSearch = document.getElementById('mobileSearchInput');
@@ -150,6 +153,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const mobSearch = document.getElementById('mobileSearchInput');
     if (mobSearch) {
         mobSearch.addEventListener('input', (e) => {
+            if (window.location.hash !== '') {
+                window.location.hash = '';
+            }
             renderGrid(e.target.value, currentSort);
             // Sync with desktop search
             document.getElementById('searchInput').value = e.target.value;
@@ -193,6 +199,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (navHome) {
         navHome.addEventListener('click', () => {
+            // Reset view state
+            if (window.location.hash !== '') {
+                window.location.hash = '';
+            }
+            
             // Reset search state
             document.getElementById('searchInput').value = '';
             if (document.getElementById('mobileSearchInput')) {
@@ -212,6 +223,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (navSearch) {
         navSearch.addEventListener('click', () => {
+            if (window.location.hash !== '') {
+                window.location.hash = '';
+            }
             const container = document.getElementById('mobileSearchContainer');
             container.classList.toggle('hidden');
             if (!container.classList.contains('hidden')) {

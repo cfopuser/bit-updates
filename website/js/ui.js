@@ -7,6 +7,7 @@ export const loader = document.getElementById('loader');
 export const gridContainer = document.getElementById('gridContainer');
 export const featuredAppArea = document.getElementById('featuredAppArea');
 export const appPage = document.getElementById('appPage');
+export const categoryContainer = document.getElementById('categoryContainer');
 export const lightbox = document.getElementById('lightbox');
 export const lightboxImage = document.getElementById('lightboxImage');
 export const lightboxCounter = document.getElementById('lightboxCounter');
@@ -169,8 +170,7 @@ function buildFeaturedApp(appId) {
 }
 
 export function renderCategories() {
-    const container = document.getElementById('categoryContainer');
-    if (!container) return;
+    if (!categoryContainer) return;
 
     const categories = new Set();
     Object.values(appConfigs).forEach(config => {
@@ -197,12 +197,15 @@ export function renderCategories() {
         `;
     });
 
-    container.innerHTML = html;
-    container.classList.remove('hidden');
+    categoryContainer.innerHTML = html;
+    categoryContainer.classList.remove('hidden');
 }
 
 window.setCategory = (cat) => {
     activeCategory = cat;
+    if (window.location.hash !== '') {
+        window.location.hash = '';
+    }
     renderCategories();
     const searchInput = document.getElementById('searchInput');
     const query = searchInput ? searchInput.value : '';
@@ -281,9 +284,10 @@ export function renderAppPage(appId) {
     currentScreenshots = screenshots;
     currentScreenshotIndex = 0;
 
-    // Hide grid and featured
+    // Hide grid, featured and categories
     gridContainer.classList.add('hidden');
     featuredAppArea.classList.add('hidden');
+    if (categoryContainer) categoryContainer.classList.add('hidden');
     appPage.classList.remove('hidden');
 
     appPage.innerHTML = `
