@@ -361,20 +361,14 @@
     <!-- Main Content -->
     <main class="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-12 sm:space-y-16">
         
-        <!-- Discovery Area (Hero) -->
-        <section id="featuredAppArea" class="pt-12 pb-16 sm:pt-20 sm:pb-24">
-            <h1 class="text-4xl sm:text-6xl font-bold tracking-tighter text-zinc-900 dark:text-zinc-100 mb-4" data-key="heroTitle">Curated Artifacts</h1>
-            <p class="text-lg sm:text-xl text-zinc-500 dark:text-zinc-500 font-light max-w-2xl leading-relaxed" data-key="heroSubtitle">Patched and maintained for the community. Crafted with precision.</p>
-        </section>
+        <!-- Featured App Area -->
+        <section id="featuredAppArea" class="pt-12 pb-8 sm:pt-16 sm:pb-12 hidden"></section>
 
         <!-- Loader -->
         <div id="loader" class="flex flex-col items-center justify-center py-20">
             <i data-lucide="loader-2" class="w-8 h-8 animate-spin text-zinc-400"></i>
             <p class="mt-4 text-zinc-500 dark:text-zinc-400 text-sm animate-pulse" data-key="loading">Loading library...</p>
         </div>
-
-        <!-- Featured App Area -->
-        <div id="featuredAppArea" class="hidden"></div>
 
         <!-- Categories Section -->
         <div id="categoryContainer" class="flex flex-wrap gap-2 sm:gap-3 py-4 border-b border-zinc-100 dark:border-zinc-800/50 hidden">
@@ -384,7 +378,6 @@
         <!-- The Grid -->
         <section class="space-y-6 hidden" id="gridContainer">
             <div class="flex items-center gap-4">
-                <h2 class="text-xs sm:text-sm font-sans uppercase tracking-[0.15em] font-bold text-zinc-500 dark:text-zinc-500" data-key="allApps" id="gridTitle">Repository</h2>
                 
                 <button id="sortDownloads" class="group flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider transition-all border border-zinc-200 dark:border-zinc-700/80 bg-zinc-100 dark:bg-zinc-800/60 text-zinc-600 dark:text-zinc-400 hover:border-zinc-300 hover:text-zinc-800 dark:hover:border-zinc-600 dark:hover:text-zinc-200 active:scale-95">
                     <i data-lucide="arrow-down-wide-narrow" class="w-3.5 h-3.5 transition-transform group-hover:scale-110"></i>
