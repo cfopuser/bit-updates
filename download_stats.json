@@ -1,15 +1,15 @@
 {
-  "bezeq": 7,
+  "bezeq": 8,
   "bit": 58,
-  "egg": 28,
+  "egg": 33,
   "hopon": 7,
-  "meld": 106,
-  "metrolist": 133,
+  "meld": 108,
+  "metrolist": 135,
   "mizrahi": 1,
   "sealplus": 15,
-  "spotify": 70,
+  "spotify": 72,
   "termux": 26,
-  "waze": 31,
-  "whatsapp": 99,
+  "waze": 32,
+  "whatsapp": 103,
   "yahav": 13
 }
